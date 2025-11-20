@@ -54,10 +54,21 @@
     "devDependencies": {
         "@types/node": "^20.10.0",
         "@vitejs/plugin-react-swc": "^3.10.2",
-        "vite": "6.3.5"
+        "@vitest/ui": "^1.0.0",
+        "vite": "6.3.5",
+        "vitest": "^1.0.0"
     },
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "vite build",
+        "test": "cd src && playwright test",
+        "test:ui": "cd src && playwright test --ui",
+        "test:headed": "cd src && playwright test --headed",
+        "test:debug": "cd src && playwright test --debug",
+        "test:report": "cd src && playwright show-report",
+        "test:chromium": "cd src && playwright test --project=chromium",
+        "test:unit": "vitest run",
+        "test:unit:watch": "vitest",
+        "test:unit:ui": "vitest --ui"
     }
 }

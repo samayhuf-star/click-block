@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { 
   Shield, 
   ArrowRight, 
@@ -53,20 +53,38 @@ import { DateFilter } from "./components/DateFilter";
 import { DateRangeIndicator } from "./components/DateRangeIndicator";
 import { GoogleAdsConnectionBanner } from "./components/GoogleAdsConnectionBanner";
 import { GoogleAdsConnectionModal } from "./components/GoogleAdsConnectionModal";
-import { RefundRequestPage } from "./components/RefundRequestPage";
-import { PricingPage } from "./components/PricingPage";
-import { ResellerDashboard } from "./components/ResellerDashboard";
-import { WhiteLabelDashboard } from "./components/WhiteLabelDashboard";
-import { Dashboard } from "./components/dashboard/Dashboard";
-import { LandingPage } from "./components/LandingPage";
-import { AuthModal } from "./components/AuthModal";
-import { Footer } from "./components/Footer";
-import { HelpPage } from "./components/HelpPage";
-import { PrivacyPolicyPage } from "./components/PrivacyPolicyPage";
 import { toast, Toaster } from "sonner@2.0.3";
-import { TermsOfServicePage } from "./components/TermsOfServicePage";
-import { CookiePolicyPage, RefundPolicyPage, AcceptableUsePage } from "./components/PolicyPages";
-import { SuperAdminSetup } from "./components/SuperAdminSetup";
+
+// Lazy load heavy components for code splitting
+const LandingPage = lazy(() => import("./components/LandingPage").then(m => ({ default: m.LandingPage })));
+const Dashboard = lazy(() => import("./components/dashboard/Dashboard").then(m => ({ default: m.Dashboard })));
+const PricingPage = lazy(() => import("./components/PricingPage").then(m => ({ default: m.PricingPage })));
+const ResellerDashboard = lazy(() => import("./components/ResellerDashboard").then(m => ({ default: m.ResellerDashboard })));
+const WhiteLabelDashboard = lazy(() => import("./components/WhiteLabelDashboard").then(m => ({ default: m.WhiteLabelDashboard })));
+const RefundRequestPage = lazy(() => import("./components/RefundRequestPage").then(m => ({ default: m.RefundRequestPage })));
+const HelpPage = lazy(() => import("./components/HelpPage").then(m => ({ default: m.HelpPage })));
+const PrivacyPolicyPage = lazy(() => import("./components/PrivacyPolicyPage").then(m => ({ default: m.PrivacyPolicyPage })));
+const TermsOfServicePage = lazy(() => import("./components/TermsOfServicePage").then(m => ({ default: m.TermsOfServicePage })));
+const SuperAdminSetup = lazy(() => import("./components/SuperAdminSetup").then(m => ({ default: m.SuperAdminSetup })));
+const AuthModal = lazy(() => import("./components/AuthModal").then(m => ({ default: m.AuthModal })));
+const Footer = lazy(() => import("./components/Footer").then(m => ({ default: m.Footer })));
+
+// Policy pages - load together
+const PolicyPages = lazy(() => import("./components/PolicyPages").then(m => ({
+  CookiePolicyPage: m.CookiePolicyPage,
+  RefundPolicyPage: m.RefundPolicyPage,
+  AcceptableUsePage: m.AcceptableUsePage,
+})));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen bg-slate-950">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+      <p className="text-slate-400">Loading...</p>
+    </div>
+  </div>
+);
 
 export default function App() {
   const [view, setView] = useState<"landing" | "pricing" | "dashboard" | "reseller" | "whitelabel" | "help" | "privacy-policy" | "terms-of-service" | "cookie-policy" | "refund-policy" | "acceptable-use">("landing");
@@ -230,7 +248,9 @@ export default function App() {
   // Full Dashboard with real backend integration
   if (view === "dashboard") {
     return (
-      <Dashboard onLogout={handleLogout} currentUser={currentUser} />
+      <Suspense fallback={<LoadingFallback />}>
+        <Dashboard onLogout={handleLogout} currentUser={currentUser} />
+      </Suspense>
     );
   }
 
@@ -1499,86 +1519,128 @@ export default function App() {
 
   // Pricing Page
   if (view === "pricing") {
-    return <PricingPage />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PricingPage />
+      </Suspense>
+    );
   }
 
   // Reseller Dashboard
   if (view === "reseller") {
-    return <ResellerDashboard />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <ResellerDashboard />
+      </Suspense>
+    );
   }
 
   // White Label Dashboard
   if (view === "whitelabel") {
-    return <WhiteLabelDashboard />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <WhiteLabelDashboard />
+      </Suspense>
+    );
   }
 
   // Help & FAQ
   if (view === "help") {
-    return <HelpPage onBackToHome={() => setView("landing")} />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <HelpPage onBackToHome={() => setView("landing")} />
+      </Suspense>
+    );
   }
 
   // Privacy Policy
   if (view === "privacy-policy") {
-    return <PrivacyPolicyPage onBackToHome={() => setView("landing")} />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PrivacyPolicyPage onBackToHome={() => setView("landing")} />
+      </Suspense>
+    );
   }
 
   // Terms of Service
   if (view === "terms-of-service") {
-    return <TermsOfServicePage onBackToHome={() => setView("landing")} />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <TermsOfServicePage onBackToHome={() => setView("landing")} />
+      </Suspense>
+    );
   }
 
   // Cookie Policy
   if (view === "cookie-policy") {
-    return <CookiePolicyPage onBackToHome={() => setView("landing")} />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PolicyPages.CookiePolicyPage onBackToHome={() => setView("landing")} />
+      </Suspense>
+    );
   }
 
   // Refund Policy
   if (view === "refund-policy") {
-    return <RefundPolicyPage onBackToHome={() => setView("landing")} />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PolicyPages.RefundPolicyPage onBackToHome={() => setView("landing")} />
+      </Suspense>
+    );
   }
 
   // Acceptable Use Policy
   if (view === "acceptable-use") {
-    return <AcceptableUsePage onBackToHome={() => setView("landing")} />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PolicyPages.AcceptableUsePage onBackToHome={() => setView("landing")} />
+      </Suspense>
+    );
   }
 
   // Landing Page
   return (
     <>
-      <LandingPage 
-        onViewPricing={() => setView("pricing")}
-        onSignIn={() => {
-          setAuthMode('signin');
-          setShowAuthModal(true);
-        }}
-        onSignUp={() => {
-          setAuthMode('signup');
-          setShowAuthModal(true);
-        }}
-      />
-      
-      {/* Pricing Section Embedded */}
-      <PricingPage />
+      <Suspense fallback={<LoadingFallback />}>
+        <LandingPage 
+          onViewPricing={() => setView("pricing")}
+          onSignIn={() => {
+            setAuthMode('signin');
+            setShowAuthModal(true);
+          }}
+          onSignUp={() => {
+            setAuthMode('signup');
+            setShowAuthModal(true);
+          }}
+        />
+        
+        {/* Pricing Section Embedded */}
+        <PricingPage />
 
-      {/* Footer */}
-      <Footer onNavigate={(page) => setView(page as any)} />
+        {/* Footer */}
+        <Footer onNavigate={(page) => setView(page as any)} />
+      </Suspense>
 
       {/* Auth Modal */}
       {showAuthModal && (
-        <AuthModal
-          mode={authMode}
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={(user) => {
-            setCurrentUser(user);
-            setShowAuthModal(false);
-            setView("dashboard");
-          }}
-          onSwitchMode={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <AuthModal
+            mode={authMode}
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={(user) => {
+              setCurrentUser(user);
+              setShowAuthModal(false);
+              setView("dashboard");
+            }}
+            onSwitchMode={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
+          />
+        </Suspense>
       )}
 
       {/* Super Admin Setup - Only show on landing page */}
-      <SuperAdminSetup />
+      <Suspense fallback={null}>
+        <SuperAdminSetup />
+      </Suspense>
 
       {/* Toast Notifications */}
       <Toaster 
