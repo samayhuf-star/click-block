@@ -302,6 +302,48 @@ export function WebsitesManager() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    if (websites.length === 0) {
+      toast.info('No websites to delete');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ALL ${websites.length} website${websites.length !== 1 ? 's' : ''}?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    toast.loading(`Deleting all ${websites.length} websites...`, { id: 'delete-all' });
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const website of websites) {
+      try {
+        await websitesAPI.delete(website.id);
+        successCount++;
+      } catch (error) {
+        console.error(`Error deleting website ${website.id}:`, error);
+        failedCount++;
+      }
+    }
+
+    // Clear websites list
+    setWebsites([]);
+    setSelectedWebsites(new Set());
+    setIsDeleting(false);
+
+    toast.dismiss('delete-all');
+
+    if (failedCount === 0) {
+      toast.success(`Successfully deleted all ${successCount} website${successCount > 1 ? 's' : ''}!`);
+    } else {
+      toast.warning(`Deleted ${successCount} of ${websites.length} websites`, {
+        description: `${failedCount} deletion${failedCount > 1 ? 's' : ''} failed`
+      });
+    }
+  };
+
   const handleVerifyWebsite = async (id: string) => {
     const website = websites.find(w => w.id === id);
     
