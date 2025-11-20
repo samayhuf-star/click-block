@@ -522,6 +522,18 @@ export function WebsitesManager() {
             <RefreshCw className="w-5 h-5 mr-2" />
             Refresh
           </Button>
+          {websites.length > 0 && (
+            <Button 
+              onClick={handleDeleteAll}
+              variant="outline"
+              className="border-red-500/50 hover:bg-red-500/20 text-red-400 hover:text-red-300"
+              disabled={isDeleting}
+              title="Delete all websites"
+            >
+              <Trash2 className="w-5 h-5 mr-2" />
+              Delete All
+            </Button>
+          )}
           <Button 
             onClick={handleFixDomains}
             className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
