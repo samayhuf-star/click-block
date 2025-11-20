@@ -1579,6 +1579,9 @@ function SnippetDisplay({ snippetId, status, onClose, onVerify }: {
     setOrigin(window.location.origin);
   }, []);
 
+  // Use current origin for tracking script (works for both localhost and production)
+  const trackingScriptUrl = `${origin}/tracking.js`;
+  
   const snippet = `<!-- ClickBlock Tracking Snippet -->
 <!-- Paste this code in the <head> section of your website -->
 <script>
@@ -1586,7 +1589,7 @@ function SnippetDisplay({ snippetId, status, onClose, onVerify }: {
     var ag = document.createElement('script');
     ag.type = 'text/javascript';
     ag.async = true;
-    ag.src = 'https://click-block-r0fya98j7-samayhuf-stars-projects.vercel.app/tracking.js';
+    ag.src = '${trackingScriptUrl}';
     ag.setAttribute('data-snippet-id', '${snippetId}');
     var s = document.getElementsByTagName('script')[0];
     s.parentNode.insertBefore(ag, s);
