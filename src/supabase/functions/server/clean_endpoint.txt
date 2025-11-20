@@ -1,0 +1,51 @@
+// Add new website
+app.post("/make-server-51144976/websites", async (c) => {
+  try {
+    const { name, url } = await c.req.json();
+    
+    if (!name || !url) {
+      return c.json({ error: "Name and URL are required" }, 400);
+    }
+
+    // Sanitize URL using helper function
+    const sanitizedUrl = sanitizeUrl(url);
+
+    // Basic URL validation
+    try {
+      new URL(sanitizedUrl);
+    } catch (error) {
+      return c.json({ error: "Invalid URL format. Please enter a valid website URL." }, 400);
+    }
+
+    const websiteId = `website:${Date.now()}`;
+    const snippetId = `AG-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+    
+    const website = {
+      id: websiteId,
+      name,
+      url: sanitizedUrl,
+      snippetId,
+      status: "inactive",
+      createdAt: new Date().toISOString(),
+      clicks: 0,
+      fraudClicks: 0,
+      blockedIPs: []
+    };
+
+    await kv.set(websiteId, website);
+    
+    // Initialize analytics for this website
+    await kv.set(`analytics:${websiteId}`, {
+      totalClicks: 0,
+      fraudulentClicks: 0,
+      blockedIPs: 0,
+      clicksByDate: {},
+      fraudByDate: {}
+    });
+
+    return c.json({ website });
+  } catch (error) {
+    console.error("Error creating website:", error);
+    return c.json({ error: "Failed to create website" }, 500);
+  }
+});

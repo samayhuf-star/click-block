@@ -1,0 +1,24 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded Rectangle Background -->
+  <rect width="180" height="180" rx="40" fill="url(#gradient)"/>
+  
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Shield -->
+  <path d="M90 30C90 30 50 38 35 38C35 38 30 85 35 125C40 165 90 165 90 165C90 165 140 165 145 125C150 85 145 38 145 38C130 38 90 30 90 30Z" 
+        fill="#ffffff" 
+        opacity="0.95"/>
+  
+  <!-- Check Mark -->
+  <path d="M68 90L82 104L112 74" 
+        stroke="#667eea" 
+        stroke-width="10" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none"/>
+</svg>

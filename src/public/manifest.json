@@ -1,0 +1,23 @@
+{
+  "name": "ClickBlock - Click Fraud Protection",
+  "short_name": "ClickBlock",
+  "description": "World's Best Click Fraud Protection Platform - We monitor every minute details.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml"
+    }
+  ]
+}
