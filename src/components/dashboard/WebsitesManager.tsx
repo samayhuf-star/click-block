@@ -55,6 +55,11 @@ export function WebsitesManager() {
 
   useEffect(() => {
     loadWebsites();
+    // Auto-refresh analytics every 30 seconds
+    const interval = setInterval(() => {
+      loadWebsites();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadWebsites = async () => {
@@ -67,15 +72,29 @@ export function WebsitesManager() {
         (data.websites || []).map(async (website: Website) => {
           try {
             const analyticsData = await websitesAPI.getAnalytics(website.id);
+            const totalClicks = analyticsData.analytics?.totalClicks || 0;
+            const fraudClicks = analyticsData.analytics?.fraudulentClicks || 0;
+            
+            console.log(`Analytics for ${website.name}:`, {
+              totalClicks,
+              fraudClicks,
+              snippetId: website.snippetId
+            });
+            
             return {
               ...website,
-              clicks: analyticsData.analytics?.totalClicks || 0,
-              fraudClicks: analyticsData.analytics?.fraudulentClicks || 0
+              clicks: totalClicks,
+              fraudClicks: fraudClicks
               // blockedIPs is already in the website object as an array
             };
           } catch (error) {
             console.error(`Error loading analytics for ${website.name}:`, error);
-            return website;
+            // Return website with zero clicks if analytics fail
+            return {
+              ...website,
+              clicks: 0,
+              fraudClicks: 0
+            };
           }
         })
       );
@@ -430,6 +449,15 @@ export function WebsitesManager() {
           <p className="text-slate-300">Manage your protected websites and tracking snippets</p>
         </div>
         <div className="flex gap-3">
+          <Button 
+            onClick={loadWebsites}
+            variant="outline"
+            className="border-white/20 hover:bg-slate-800"
+            title="Refresh analytics data"
+          >
+            <RefreshCw className="w-5 h-5 mr-2" />
+            Refresh
+          </Button>
           <Button 
             onClick={handleFixDomains}
             className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
@@ -1345,12 +1373,13 @@ function SnippetDisplay({ snippetId, status, onClose, onVerify }: {
   }, []);
 
   const snippet = `<!-- ClickBlock Tracking Snippet -->
+<!-- Paste this code in the <head> section of your website -->
 <script>
   (function() {
     var ag = document.createElement('script');
     ag.type = 'text/javascript';
     ag.async = true;
-    ag.src = '${origin}/tracking.js';
+    ag.src = 'https://click-block-r0fya98j7-samayhuf-stars-projects.vercel.app/tracking.js';
     ag.setAttribute('data-snippet-id', '${snippetId}');
     var s = document.getElementsByTagName('script')[0];
     s.parentNode.insertBefore(ag, s);

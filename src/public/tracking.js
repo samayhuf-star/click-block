@@ -2,11 +2,37 @@
   'use strict';
   
   // Get snippet ID from the script tag
-  var currentScript = document.currentScript || document.querySelector('script[data-snippet-id]');
-  var snippetId = currentScript ? currentScript.getAttribute('data-snippet-id') : null;
+  // Try multiple methods to get snippet ID for dynamic loading support
+  var snippetId = null;
+  
+  // Method 1: Try currentScript (works for inline scripts)
+  var currentScript = document.currentScript;
+  if (currentScript) {
+    snippetId = currentScript.getAttribute('data-snippet-id');
+  }
+  
+  // Method 2: Try to find script tag with data-snippet-id (works for dynamically loaded scripts)
+  if (!snippetId) {
+    var scripts = document.querySelectorAll('script[data-snippet-id]');
+    if (scripts.length > 0) {
+      snippetId = scripts[scripts.length - 1].getAttribute('data-snippet-id');
+    }
+  }
+  
+  // Method 3: Try to find script tag that loaded this file
+  if (!snippetId) {
+    var allScripts = document.querySelectorAll('script[src*="tracking.js"]');
+    for (var i = 0; i < allScripts.length; i++) {
+      var id = allScripts[i].getAttribute('data-snippet-id');
+      if (id) {
+        snippetId = id;
+        break;
+      }
+    }
+  }
   
   if (!snippetId) {
-    console.warn('ClickBlock: No snippet ID found');
+    console.warn('ClickBlock: No snippet ID found. Please ensure the script tag has data-snippet-id attribute.');
     return;
   }
   

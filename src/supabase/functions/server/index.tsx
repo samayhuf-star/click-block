@@ -730,5 +730,258 @@ app.post("/make-server-51144976/websites/:id/verify", async (c) => {
   }
 });
 
+// ============ TRACKING ROUTES ============
+
+// Track click/page view
+app.post("/make-server-51144976/track-click", async (c) => {
+  try {
+    const trackingData = await c.req.json();
+    const { snippetId, ip, userAgent, referrer, timestamp, url, isAdClick } = trackingData;
+    
+    if (!snippetId) {
+      return c.json({ error: "Snippet ID is required" }, 400);
+    }
+
+    console.log(`Tracking click for snippet: ${snippetId}`);
+    console.log(`Tracking data received:`, { snippetId, userAgent, referrer, url, isAdClick });
+
+    // Find website by snippet ID (case-insensitive match)
+    const websites = await kv.getByPrefix("website:");
+    console.log(`Total websites found: ${websites.length}`);
+    console.log(`Available snippet IDs:`, websites.map((w: any) => w.snippetId));
+    
+    const website = websites.find((w: any) => 
+      w.snippetId && w.snippetId.toUpperCase() === snippetId.toUpperCase()
+    );
+
+    if (!website) {
+      console.warn(`Website not found for snippet ID: ${snippetId}`);
+      console.warn(`Available snippet IDs:`, websites.map((w: any) => w.snippetId));
+      return c.json({ 
+        blocked: false,
+        message: `Website not found for snippet ID: ${snippetId}. Available IDs: ${websites.map((w: any) => w.snippetId).join(', ')}`,
+        snippetId,
+        availableSnippets: websites.map((w: any) => w.snippetId)
+      });
+    }
+
+    console.log(`Found website: ${website.name} (${website.id})`);
+
+    // Get client IP from request headers or use provided IP
+    const clientIP = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+                     c.req.header("x-real-ip") ||
+                     ip ||
+                     "unknown";
+
+    // Basic fraud detection (simplified)
+    const isFraudulent = detectFraud(clientIP, userAgent, referrer);
+    
+    // Get current analytics
+    const analyticsKey = `analytics:${website.id}`;
+    let analytics = await kv.get(analyticsKey) || {
+      totalClicks: 0,
+      fraudulentClicks: 0,
+      blockedIPs: 0,
+      clicksByDate: {},
+      fraudByDate: {}
+    };
+
+    // Update analytics
+    analytics.totalClicks = (analytics.totalClicks || 0) + 1;
+    
+    const today = new Date().toISOString().split('T')[0];
+    analytics.clicksByDate[today] = (analytics.clicksByDate[today] || 0) + 1;
+
+    if (isFraudulent) {
+      analytics.fraudulentClicks = (analytics.fraudulentClicks || 0) + 1;
+      analytics.fraudByDate[today] = (analytics.fraudByDate[today] || 0) + 1;
+      
+      // Add to blocked IPs if not already there
+      if (!website.blockedIPs.includes(clientIP)) {
+        website.blockedIPs.push(clientIP);
+        await kv.set(website.id, website);
+      }
+      analytics.blockedIPs = website.blockedIPs.length;
+    }
+
+    // Save updated analytics
+    await kv.set(analyticsKey, analytics);
+
+    // Update website clicks count
+    website.clicks = analytics.totalClicks;
+    website.fraudClicks = analytics.fraudulentClicks;
+    await kv.set(website.id, website);
+
+    console.log(`Click tracked: ${website.name} - Total: ${analytics.totalClicks}, Fraud: ${analytics.fraudulentClicks}`);
+
+    return c.json({
+      blocked: isFraudulent,
+      message: isFraudulent ? "Fraudulent click detected and blocked" : "Click tracked successfully",
+      snippetId,
+      websiteId: website.id
+    });
+  } catch (error) {
+    console.error("Error tracking click:", error);
+    return c.json({ 
+      blocked: false,
+      error: "Failed to track click",
+      message: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
+  }
+});
+
+// Simple fraud detection function
+function detectFraud(ip: string, userAgent: string, referrer: string): boolean {
+  // Check for bot user agents
+  const botPatterns = [
+    /bot/i, /crawler/i, /spider/i, /scraper/i,
+    /headless/i, /phantom/i, /selenium/i, /webdriver/i,
+    /curl/i, /wget/i, /python/i, /java/i
+  ];
+  
+  if (botPatterns.some(pattern => pattern.test(userAgent))) {
+    return true;
+  }
+
+  // Check for suspicious IP patterns (simplified)
+  // In production, use a proper IP reputation service
+  if (ip === "unknown" || !ip || ip === "127.0.0.1") {
+    return false; // Don't block localhost
+  }
+
+  // Check for datacenter IPs (simplified - in production use MaxMind or similar)
+  // This is a basic check - you'd want to use a proper IP intelligence service
+  
+  return false; // Default to not fraudulent
+}
+
+// Get analytics for a specific website
+app.get("/make-server-51144976/analytics/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    
+    // Get website
+    const website = await kv.get(id);
+    if (!website) {
+      return c.json({ error: "Website not found" }, 404);
+    }
+
+    // Get analytics
+    const analyticsKey = `analytics:${website.id}`;
+    const analytics = await kv.get(analyticsKey) || {
+      totalClicks: 0,
+      fraudulentClicks: 0,
+      blockedIPs: 0,
+      clicksByDate: {},
+      fraudByDate: {}
+    };
+
+    return c.json({
+      analytics: {
+        totalClicks: analytics.totalClicks || 0,
+        fraudulentClicks: analytics.fraudulentClicks || 0,
+        blockedIPs: analytics.blockedIPs || 0,
+        clicksByDate: analytics.clicksByDate || {},
+        fraudByDate: analytics.fraudByDate || {}
+      },
+      website: {
+        id: website.id,
+        name: website.name,
+        url: website.url,
+        snippetId: website.snippetId
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching analytics:", error);
+    return c.json({ error: "Failed to fetch analytics" }, 500);
+  }
+});
+
+// Get all analytics
+app.get("/make-server-51144976/analytics", async (c) => {
+  try {
+    const websites = await kv.getByPrefix("website:");
+    const analyticsKeys = websites.map((w: any) => `analytics:${w.id}`);
+    const analyticsData = await kv.mget(analyticsKeys);
+    
+    const analytics = websites.map((website: any, index: number) => ({
+      websiteId: website.id,
+      websiteName: website.name,
+      snippetId: website.snippetId,
+      totalClicks: analyticsData[index]?.totalClicks || 0,
+      fraudulentClicks: analyticsData[index]?.fraudulentClicks || 0,
+      blockedIPs: analyticsData[index]?.blockedIPs || 0,
+      clicksByDate: analyticsData[index]?.clicksByDate || {},
+      fraudByDate: analyticsData[index]?.fraudByDate || {}
+    }));
+
+    return c.json({ analytics });
+  } catch (error) {
+    console.error("Error fetching all analytics:", error);
+    return c.json({ error: "Failed to fetch analytics" }, 500);
+  }
+});
+
+// Test endpoint to simulate clicks (for testing/debugging)
+app.post("/make-server-51144976/test-track", async (c) => {
+  try {
+    const { snippetId, count = 1 } = await c.req.json();
+    
+    if (!snippetId) {
+      return c.json({ error: "Snippet ID is required" }, 400);
+    }
+
+    // Find website by snippet ID
+    const websites = await kv.getByPrefix("website:");
+    const website = websites.find((w: any) => w.snippetId === snippetId);
+
+    if (!website) {
+      return c.json({ error: "Website not found for snippet ID" }, 404);
+    }
+
+    const analyticsKey = `analytics:${website.id}`;
+    let analytics = await kv.get(analyticsKey) || {
+      totalClicks: 0,
+      fraudulentClicks: 0,
+      blockedIPs: 0,
+      clicksByDate: {},
+      fraudByDate: {}
+    };
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Simulate clicks
+    for (let i = 0; i < count; i++) {
+      analytics.totalClicks = (analytics.totalClicks || 0) + 1;
+      analytics.clicksByDate[today] = (analytics.clicksByDate[today] || 0) + 1;
+      
+      // Randomly mark some as fraud (10% chance)
+      if (Math.random() < 0.1) {
+        analytics.fraudulentClicks = (analytics.fraudulentClicks || 0) + 1;
+        analytics.fraudByDate[today] = (analytics.fraudByDate[today] || 0) + 1;
+      }
+    }
+
+    await kv.set(analyticsKey, analytics);
+    
+    // Update website
+    website.clicks = analytics.totalClicks;
+    website.fraudClicks = analytics.fraudulentClicks;
+    await kv.set(website.id, website);
+
+    return c.json({
+      success: true,
+      message: `Simulated ${count} click(s) for ${website.name}`,
+      analytics: {
+        totalClicks: analytics.totalClicks,
+        fraudulentClicks: analytics.fraudulentClicks
+      }
+    });
+  } catch (error) {
+    console.error("Error in test-track:", error);
+    return c.json({ error: "Failed to simulate clicks" }, 500);
+  }
+});
+
 // Start the server
 Deno.serve(app.fetch);
