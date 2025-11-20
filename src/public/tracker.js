@@ -12,8 +12,8 @@
   
   // ClickBlock Configuration
   var CLICKBLOCK_CONFIG = {
-    projectId: 'lwyzoynbpuytmtcrjbga',
-    publicKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3eXpveW5icHV5dG10Y3JqYmdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMyMTYzMTIsImV4cCI6MjA3ODc5MjMxMn0.UHURs_eM-ZpxAZ3ADCm4BVoigW_3MjSwYkX2-Xa3MEo'
+    projectId: 'djuvnasyncdqhsrydkse',
+    publicKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqdXZuYXN5bmNkcWhzcnlka3NlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1NjI3MTksImV4cCI6MjA3OTEzODcxOX0.g3NT-tQo88MdeyLbzAXWEol_SN6AmcFMWA94p6X_lmQ'
   };
   
   console.log('ClickBlock Tracker Active - ID:', snippetId);

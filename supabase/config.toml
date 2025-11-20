@@ -1,7 +1,7 @@
 # Supabase Edge Functions Configuration
 
 [project]
-id = "lwyzoynbpuytmtcrjbga"
+id = "djuvnasyncdqhsrydkse"
 
 [functions]
 make-server-51144976 = { verify_jwt = false }
