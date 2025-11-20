@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickBlock Tracking Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .info {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #333;
+            border-radius: 5px;
+            display: none;
+        }
+        .log {
+            font-family: monospace;
+            font-size: 12px;
+            color: #0f0;
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+    
+    <!-- ClickBlock Tracking Snippet -->
+    <!-- Replace AG-A9T9XVE6 with your actual snippet ID from the dashboard -->
+    <script>
+      (function() {
+        var ag = document.createElement('script');
+        ag.type = 'text/javascript';
+        ag.async = true;
+        ag.src = 'https://click-block-j5lbou9qt-samayhuf-stars-projects.vercel.app/tracking.js';
+        ag.setAttribute('data-snippet-id', 'AG-A9T9XVE6');
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(ag, s);
+      })();
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ ClickBlock Tracking Test Page</h1>
+        
+        <div class="info">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Open browser console (F12) to see tracking logs</li>
+                <li>This page automatically tracks a page view on load</li>
+                <li>Click the buttons below to simulate ad clicks</li>
+                <li>Check your ClickBlock dashboard to see the analytics</li>
+            </ol>
+        </div>
+
+        <div>
+            <h3>🖱️ Test Actions:</h3>
+            <button onclick="simulateAdClick()">Simulate Ad Click</button>
+            <button onclick="simulatePageView()">Simulate Page View</button>
+            <button onclick="checkConsole()">Check Console Logs</button>
+        </div>
+
+        <div id="results">
+            <h3>📊 Tracking Status:</h3>
+            <div id="status"></div>
+        </div>
+
+        <div class="info">
+            <h3>📝 Current Snippet ID:</h3>
+            <p><strong>AG-A9T9XVE6</strong></p>
+            <p><small>To use a different snippet ID, edit the script tag in the &lt;head&gt; section</small></p>
+        </div>
+
+        <div class="log" id="console-log">
+            <strong>Console Output:</strong><br>
+            <span id="log-content">Open browser console (F12) to see tracking logs...</span>
+        </div>
+    </div>
+
+    <script>
+        // Override console.log to show in page
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        const logContent = document.getElementById('log-content');
+        
+        function addLog(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f44' : type === 'warn' ? '#fa4' : '#0f0';
+            logContent.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'log');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLog(args.join(' '), 'warn');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'error');
+        };
+
+        function simulateAdClick() {
+            console.log('🖱️ Simulating ad click...');
+            const adLink = document.createElement('a');
+            adLink.href = 'https://googleadservices.com/test';
+            adLink.className = 'ad';
+            adLink.textContent = 'Test Ad';
+            document.body.appendChild(adLink);
+            adLink.click();
+            document.body.removeChild(adLink);
+            console.log('✅ Ad click simulated');
+        }
+
+        function simulatePageView() {
+            console.log('🔄 Simulating page view...');
+            window.dispatchEvent(new Event('load'));
+            console.log('✅ Page view simulated');
+        }
+
+        function checkConsole() {
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('status').innerHTML = `
+                <p>✅ Check the console output above for tracking logs</p>
+                <p>✅ Visit your ClickBlock dashboard to see analytics</p>
+                <p>✅ Refresh the dashboard after 30 seconds to see updated data</p>
+            `;
+        }
+
+        // Log when page loads
+        window.addEventListener('load', function() {
+            console.log('📄 Page loaded - tracking should be active');
+            console.log('🔍 Looking for ClickBlock tracking logs...');
+        });
+    </script>
+</body>
+</html>
+
