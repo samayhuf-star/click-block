@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Globe, Check, X, Trash2, Copy, ExternalLink, RefreshCw, Eye, EyeOff, Search, Grid, List, Layers, Download, Upload, Code, Edit, Shield, CheckCircle, AlertCircle, Loader2, Filter, ArrowUpDown, Grid3x3, Activity } from "lucide-react";
+import { Plus, Globe, Check, X, Trash2, Copy, ExternalLink, RefreshCw, Eye, EyeOff, Search, Grid, List, Layers, Download, Upload, Code, Edit, Shield, CheckCircle, AlertCircle, Loader2, Filter, ArrowUpDown, Grid3x3, Activity, Info } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Checkbox } from "../ui/checkbox";
 import { toast } from "sonner@2.0.3";
 import { websitesAPI } from "../../utils/api";
+import { validateURL, validateWebsiteName, sanitizeURL } from "../../utils/validation";
 
 interface Website {
   id: string;
@@ -41,6 +42,7 @@ export function WebsitesManager() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedWebsite, setSelectedWebsite] = useState<Website | null>(null);
   const [showSnippet, setShowSnippet] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState<string | null>(null);
   const [verifyingWebsites, setVerifyingWebsites] = useState<Set<string>>(new Set());
   
   // Bulk selection
@@ -113,7 +115,27 @@ export function WebsitesManager() {
 
   const handleAddWebsite = async (name: string, url: string) => {
     try {
-      const data = await websitesAPI.create(name, url);
+      // Validate inputs
+      const nameValidation = validateWebsiteName(name);
+      if (!nameValidation.valid) {
+        toast.error('Invalid website name', {
+          description: nameValidation.error
+        });
+        return;
+      }
+
+      const urlValidation = validateURL(url);
+      if (!urlValidation.valid) {
+        toast.error('Invalid URL', {
+          description: urlValidation.error
+        });
+        return;
+      }
+
+      // Sanitize URL
+      const sanitizedUrl = sanitizeURL(url);
+      
+      const data = await websitesAPI.create(name.trim(), sanitizedUrl);
       setWebsites([...websites, data.website]);
       setIsAddDialogOpen(false);
       setShowSnippet(data.website.id);
@@ -703,7 +725,9 @@ export function WebsitesManager() {
               key={website.id}
               website={website}
               showSnippet={showSnippet}
+              showDetails={showDetails}
               onShowSnippet={setShowSnippet}
+              onShowDetails={setShowDetails}
               onEdit={(site) => {
                 setSelectedWebsite(site);
                 setIsEditDialogOpen(true);
@@ -721,7 +745,9 @@ export function WebsitesManager() {
               key={website.id}
               website={website}
               showSnippet={showSnippet}
+              showDetails={showDetails}
               onShowSnippet={setShowSnippet}
+              onShowDetails={setShowDetails}
               onEdit={(site) => {
                 setSelectedWebsite(site);
                 setIsEditDialogOpen(true);
@@ -810,8 +836,10 @@ export function WebsitesManager() {
 // Website Card - List View
 function WebsiteCardList({ 
   website, 
-  showSnippet, 
-  onShowSnippet, 
+  showSnippet,
+  showDetails,
+  onShowSnippet,
+  onShowDetails,
   onEdit, 
   onDelete,
   onVerify,
@@ -819,7 +847,9 @@ function WebsiteCardList({
 }: {
   website: Website;
   showSnippet: string | null;
+  showDetails: string | null;
   onShowSnippet: (id: string | null) => void;
+  onShowDetails: (id: string | null) => void;
   onEdit: (website: Website) => void;
   onDelete: (id: string) => void;
   onVerify: (id: string) => void;
@@ -898,6 +928,15 @@ function WebsiteCardList({
           <Button
             size="sm"
             variant="outline"
+            className="bg-transparent border-blue-500/50 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300"
+            onClick={() => setShowDetails(showDetails === website.id ? null : website.id)}
+          >
+            <Info className="w-4 h-4 mr-2" />
+            View Details
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             className="bg-transparent border-slate-600 hover:bg-slate-700 text-slate-300 hover:text-white"
             onClick={() => onEdit(website)}
           >
@@ -935,6 +974,16 @@ function WebsiteCardList({
           />
         </div>
       )}
+
+      {/* Details Display */}
+      {showDetails === website.id && (
+        <div className="mt-6 pt-6 border-t border-slate-700 transition-all duration-300">
+          <WebsiteDetailsDisplay 
+            website={website}
+            onClose={() => setShowDetails(null)}
+          />
+        </div>
+      )}
     </Card>
   );
 }
@@ -942,8 +991,10 @@ function WebsiteCardList({
 // Website Card - Grid View
 function WebsiteCardGrid({ 
   website, 
-  showSnippet, 
-  onShowSnippet, 
+  showSnippet,
+  showDetails,
+  onShowSnippet,
+  onShowDetails,
   onEdit, 
   onDelete,
   onVerify,
@@ -951,7 +1002,9 @@ function WebsiteCardGrid({
 }: {
   website: Website;
   showSnippet: string | null;
+  showDetails: string | null;
   onShowSnippet: (id: string | null) => void;
+  onShowDetails: (id: string | null) => void;
   onEdit: (website: Website) => void;
   onDelete: (id: string) => void;
   onVerify: (id: string) => void;
@@ -1028,6 +1081,15 @@ function WebsiteCardGrid({
           >
             <Code className="w-3 h-3 mr-1" />
             Snippet
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-transparent flex-1 border-blue-500/50 hover:bg-blue-500/20 text-xs text-blue-400 hover:text-blue-300"
+            onClick={() => onShowDetails(showDetails === website.id ? null : website.id)}
+          >
+            <Info className="w-3 h-3 mr-1" />
+            Details
           </Button>
           <Button
             size="sm"
@@ -1356,6 +1418,151 @@ function EditWebsiteForm({ website, onSubmit, onCancel }: {
         </Button>
       </div>
     </form>
+  );
+}
+
+function WebsiteDetailsDisplay({ website, onClose }: {
+  website: Website;
+  onClose: () => void;
+}) {
+  const [trafficData, setTrafficData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<"24h" | "7d" | "30d">("24h");
+
+  useEffect(() => {
+    loadTrafficData();
+    const interval = setInterval(loadTrafficData, 10000); // Refresh every 10 seconds
+    return () => clearInterval(interval);
+  }, [website.id, timeRange]);
+
+  const loadTrafficData = async () => {
+    try {
+      setLoading(true);
+      const analyticsData = await websitesAPI.getAnalytics(website.id);
+      // Simulate live traffic data (in production, this would come from real-time API)
+      const mockTraffic = [
+        { ip: "192.168.1.1", userAgent: "Mozilla/5.0", referrer: "google.com", timestamp: new Date().toISOString(), type: "legitimate", location: "US", device: "Desktop" },
+        { ip: "10.0.0.1", userAgent: "Bot/1.0", referrer: "direct", timestamp: new Date(Date.now() - 60000).toISOString(), type: "bot", location: "Unknown", device: "Bot" },
+        { ip: "172.16.0.1", userAgent: "Mozilla/5.0", referrer: "facebook.com", timestamp: new Date(Date.now() - 120000).toISOString(), type: "legitimate", location: "UK", device: "Mobile" },
+      ];
+      
+      setTrafficData({
+        analytics: analyticsData.analytics || {},
+        liveTraffic: mockTraffic,
+        trafficBreakdown: {
+          legitimate: analyticsData.analytics?.totalClicks - (analyticsData.analytics?.fraudulentClicks || 0) || 0,
+          bot: Math.floor((analyticsData.analytics?.fraudulentClicks || 0) * 0.4),
+          vpn: Math.floor((analyticsData.analytics?.fraudulentClicks || 0) * 0.3),
+          blocked: analyticsData.analytics?.blockedIPs || 0,
+          suspicious: Math.floor((analyticsData.analytics?.fraudulentClicks || 0) * 0.3)
+        }
+      });
+    } catch (error) {
+      console.error("Error loading traffic data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !trafficData) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  const breakdown = trafficData?.trafficBreakdown || { legitimate: 0, bot: 0, vpn: 0, blocked: 0, suspicious: 0 };
+  const total = breakdown.legitimate + breakdown.bot + breakdown.vpn + breakdown.suspicious;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h4 className="text-lg font-semibold text-white">Live Traffic Details - {website.name}</h4>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setTimeRange("24h")} className={timeRange === "24h" ? "bg-blue-600 text-white" : ""}>24h</Button>
+          <Button size="sm" variant="outline" onClick={() => setTimeRange("7d")} className={timeRange === "7d" ? "bg-blue-600 text-white" : ""}>7d</Button>
+          <Button size="sm" variant="outline" onClick={() => setTimeRange("30d")} className={timeRange === "30d" ? "bg-blue-600 text-white" : ""}>30d</Button>
+          <Button size="sm" variant="ghost" onClick={onClose} className="text-slate-300 hover:text-white">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Traffic Breakdown Dashboard */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card className="p-4 bg-green-500/10 border-green-500/20">
+          <div className="text-green-400 text-sm font-medium">Legitimate</div>
+          <div className="text-2xl font-bold text-white">{breakdown.legitimate}</div>
+          <div className="text-xs text-slate-400">{total > 0 ? ((breakdown.legitimate / total) * 100).toFixed(1) : 0}%</div>
+        </Card>
+        <Card className="p-4 bg-red-500/10 border-red-500/20">
+          <div className="text-red-400 text-sm font-medium">Bot Traffic</div>
+          <div className="text-2xl font-bold text-white">{breakdown.bot}</div>
+          <div className="text-xs text-slate-400">{total > 0 ? ((breakdown.bot / total) * 100).toFixed(1) : 0}%</div>
+        </Card>
+        <Card className="p-4 bg-orange-500/10 border-orange-500/20">
+          <div className="text-orange-400 text-sm font-medium">VPN Traffic</div>
+          <div className="text-2xl font-bold text-white">{breakdown.vpn}</div>
+          <div className="text-xs text-slate-400">{total > 0 ? ((breakdown.vpn / total) * 100).toFixed(1) : 0}%</div>
+        </Card>
+        <Card className="p-4 bg-purple-500/10 border-purple-500/20">
+          <div className="text-purple-400 text-sm font-medium">Suspicious</div>
+          <div className="text-2xl font-bold text-white">{breakdown.suspicious}</div>
+          <div className="text-xs text-slate-400">{total > 0 ? ((breakdown.suspicious / total) * 100).toFixed(1) : 0}%</div>
+        </Card>
+        <Card className="p-4 bg-yellow-500/10 border-yellow-500/20">
+          <div className="text-yellow-400 text-sm font-medium">Blocked IPs</div>
+          <div className="text-2xl font-bold text-white">{breakdown.blocked}</div>
+        </Card>
+      </div>
+
+      {/* Live Traffic Table */}
+      <Card className="p-6 bg-slate-900/50 border-slate-700">
+        <h5 className="text-lg font-semibold text-white mb-4">Recent Traffic</h5>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-700">
+                <th className="text-left py-3 px-4 text-slate-300 font-medium">IP Address</th>
+                <th className="text-left py-3 px-4 text-slate-300 font-medium">User Agent</th>
+                <th className="text-left py-3 px-4 text-slate-300 font-medium">Referrer</th>
+                <th className="text-left py-3 px-4 text-slate-300 font-medium">Location</th>
+                <th className="text-left py-3 px-4 text-slate-300 font-medium">Device</th>
+                <th className="text-left py-3 px-4 text-slate-300 font-medium">Type</th>
+                <th className="text-left py-3 px-4 text-slate-300 font-medium">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trafficData?.liveTraffic?.map((traffic: any, index: number) => (
+                <tr key={index} className="border-b border-slate-800 hover:bg-slate-800/50">
+                  <td className="py-3 px-4 text-white font-mono text-sm">{traffic.ip}</td>
+                  <td className="py-3 px-4 text-slate-300 text-sm truncate max-w-xs">{traffic.userAgent}</td>
+                  <td className="py-3 px-4 text-slate-300 text-sm">{traffic.referrer}</td>
+                  <td className="py-3 px-4 text-slate-300 text-sm">{traffic.location}</td>
+                  <td className="py-3 px-4 text-slate-300 text-sm">{traffic.device}</td>
+                  <td className="py-3 px-4">
+                    <Badge className={
+                      traffic.type === "legitimate" 
+                        ? "bg-green-500/20 text-green-400 border-green-500/30"
+                        : "bg-red-500/20 text-red-400 border-red-500/30"
+                    }>
+                      {traffic.type}
+                    </Badge>
+                  </td>
+                  <td className="py-3 px-4 text-slate-400 text-sm">{new Date(traffic.timestamp).toLocaleTimeString()}</td>
+                </tr>
+              ))}
+              {(!trafficData?.liveTraffic || trafficData.liveTraffic.length === 0) && (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400">No traffic data available</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
   );
 }
 

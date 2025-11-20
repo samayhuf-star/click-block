@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Shield, Plus, Trash2, Info } from "lucide-react";
+import { Shield, Plus, Trash2, Info, Copy } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -8,7 +8,8 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { protectionAPI } from "../../utils/api";
+import { protectionAPI, websitesAPI } from "../../utils/api";
+import { toast } from "sonner@2.0.3";
 
 interface ThresholdRule {
   id: string;
@@ -18,7 +19,7 @@ interface ThresholdRule {
 }
 
 export function ProtectionSetup() {
-  const [activeSection, setActiveSection] = useState<"tracking" | "rule">("tracking");
+  const [activeSection, setActiveSection] = useState<"protection" | "tracking">("protection");
   const [loading, setLoading] = useState(true);
   const [thresholdRules, setThresholdRules] = useState<ThresholdRule[]>([]);
   const [blockPeriod, setBlockPeriod] = useState("90");
@@ -26,10 +27,26 @@ export function ProtectionSetup() {
   const [ipRangeExclusion, setIpRangeExclusion] = useState(false);
   const [manuallyExcludeIPs, setManuallyExcludeIPs] = useState("");
   const [whitelistIPs, setWhitelistIPs] = useState("");
+  const [websites, setWebsites] = useState<any[]>([]);
+  const [trackingLoading, setTrackingLoading] = useState(true);
 
   useEffect(() => {
     loadProtectionRules();
+    loadWebsites();
   }, []);
+
+  const loadWebsites = async () => {
+    try {
+      setTrackingLoading(true);
+      const data = await websitesAPI.getAll();
+      setWebsites(data.websites || []);
+    } catch (error) {
+      console.error("Error loading websites:", error);
+      toast.error("Failed to load websites");
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
 
   const loadProtectionRules = async () => {
     try {
@@ -162,6 +179,16 @@ export function ProtectionSetup() {
       {/* Navigation Tabs */}
       <div className="flex gap-2 border-b border-white/10">
         <button
+          onClick={() => setActiveSection("protection")}
+          className={`px-4 py-3 transition-all ${
+            activeSection === "protection"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          Protection Setup
+        </button>
+        <button
           onClick={() => setActiveSection("tracking")}
           className={`px-4 py-3 transition-all ${
             activeSection === "tracking"
@@ -169,38 +196,12 @@ export function ProtectionSetup() {
               : "text-slate-400 hover:text-white"
           }`}
         >
-          Tracking Info
-        </button>
-        <button
-          onClick={() => setActiveSection("rule")}
-          className={`px-4 py-3 transition-all ${
-            activeSection === "rule"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-slate-400 hover:text-white"
-          }`}
-        >
-          Protection Rule
+          Tracking Setup
         </button>
       </div>
 
       {/* Content Sections */}
-      {activeSection === "tracking" && (
-        <div className="space-y-6">
-          <Card className="p-6 bg-slate-900/50 border-white/10">
-            <h3 className="text-xl text-white mb-4">Tracking Information</h3>
-            <p className="text-slate-400 mb-4">
-              Install the ClickBlock tracking snippet on your website to start monitoring and preventing click fraud.
-            </p>
-            <div className="bg-slate-950 p-4 rounded-lg">
-              <code className="text-green-400 text-sm">
-                {`<script src="https://cdn.clickblock.co/tracker.js" data-id="YOUR_TRACKING_ID"></script>`}
-              </code>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {activeSection === "rule" && (
+      {activeSection === "protection" && (
         <div className="space-y-6">
           {/* Breadcrumb */}
           <div className="text-sm text-slate-400">
@@ -258,14 +259,14 @@ export function ProtectionSetup() {
                         type="number"
                         value={rule.count}
                         onChange={(e) => updateThresholdRule(rule.id, "count", e.target.value)}
-                        className="w-24 bg-white border-slate-300 text-slate-900"
+                        className="w-24 bg-slate-700 border-slate-600 text-white"
                       />
                       <span className="text-white whitespace-nowrap">Ad clicks within</span>
                       <Input
                         type="text"
                         value={rule.duration}
                         onChange={(e) => updateThresholdRule(rule.id, "duration", e.target.value)}
-                        className="w-24 bg-white border-slate-300 text-slate-900"
+                        className="w-24 bg-slate-700 border-slate-600 text-white"
                       />
                       <Select
                         value={rule.timeUnit}
@@ -273,10 +274,10 @@ export function ProtectionSetup() {
                           updateThresholdRule(rule.id, "timeUnit", value)
                         }
                       >
-                        <SelectTrigger className="w-32 bg-white border-slate-300 text-slate-900">
+                        <SelectTrigger className="w-32 bg-slate-700 border-slate-600 text-white">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-slate-200">
+                        <SelectContent className="bg-slate-700 border-slate-600 text-white">
                           <SelectItem value="minutes">minutes</SelectItem>
                           <SelectItem value="days">days</SelectItem>
                         </SelectContent>
@@ -326,7 +327,7 @@ export function ProtectionSetup() {
                   value={blockPeriod}
                   onChange={(e) => setBlockPeriod(e.target.value)}
                   placeholder="Block Period"
-                  className="flex-1 bg-white border-slate-300 text-slate-900"
+                  className="flex-1 bg-slate-700 border-slate-600 text-white"
                 />
                 <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={saveBlockPeriod}>UPDATE</Button>
               </div>
@@ -344,7 +345,7 @@ export function ProtectionSetup() {
                   value={refreshRate}
                   onChange={(e) => setRefreshRate(e.target.value)}
                   placeholder="Refresh Rate"
-                  className="flex-1 bg-white border-slate-300 text-slate-900"
+                  className="flex-1 bg-slate-700 border-slate-600 text-white"
                 />
                 <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={saveRefreshRate}>UPDATE</Button>
               </div>
@@ -386,7 +387,7 @@ export function ProtectionSetup() {
                 value={manuallyExcludeIPs}
                 onChange={(e) => setManuallyExcludeIPs(e.target.value)}
                 placeholder="Enter IP addresses to exclude..."
-                className="min-h-32 bg-white border-slate-300 text-slate-900 mb-3"
+                className="min-h-32 bg-slate-700 border-slate-600 text-white mb-3"
               />
               <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={saveManuallyExcludeIPs}>UPDATE</Button>
             </div>
@@ -401,9 +402,67 @@ export function ProtectionSetup() {
                 value={whitelistIPs}
                 onChange={(e) => setWhitelistIPs(e.target.value)}
                 placeholder="Enter IP addresses to whitelist..."
-                className="min-h-32 bg-white border-slate-300 text-slate-900 mb-3"
+                className="min-h-32 bg-slate-700 border-slate-600 text-white mb-3"
               />
               <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={saveWhitelistIPs}>UPDATE</Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {activeSection === "tracking" && (
+        <div className="space-y-6">
+          <Card className="p-6 bg-slate-900/50 border-white/10">
+            <h3 className="text-xl text-white mb-4">Tracking Setup</h3>
+            <p className="text-slate-400 mb-6">
+              Manage tracking snippets for your domains. Install the ClickBlock tracking snippet on your website to start monitoring and preventing click fraud.
+            </p>
+            
+            {/* Domain Tracking List */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-white">Domains with Tracking Installed</h4>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Domain
+                </Button>
+              </div>
+              
+              {trackingLoading ? (
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 text-center">
+                  <p className="text-slate-400 text-sm">Loading domains...</p>
+                </div>
+              ) : websites.length === 0 ? (
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                  <p className="text-slate-400 text-sm">No domains with tracking installed yet. Add a website from the Websites page to get started.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {websites.map((website) => (
+                    <div key={website.id} className="bg-slate-800/50 rounded-lg p-4 border border-slate-700 flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h5 className="text-white font-semibold">{website.name}</h5>
+                          <Badge className={website.status === "active" ? "bg-green-500/20 text-green-300" : "bg-orange-500/20 text-orange-300"}>
+                            {website.status}
+                          </Badge>
+                        </div>
+                        <p className="text-slate-400 text-sm mb-1">{website.url}</p>
+                        <p className="text-slate-500 text-xs font-mono">Snippet ID: {website.snippetId}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:text-white">
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy Snippet
+                        </Button>
+                        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:text-white">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </Card>
         </div>

@@ -3,6 +3,7 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { X, Mail, Lock, User, Eye, EyeOff, Shield } from "lucide-react";
 import { projectId, publicAnonKey } from "../utils/supabase/info";
+import { validateEmail, validatePassword, sanitizeString } from "../utils/validation";
 
 export function AuthModal({ 
   mode, 
@@ -32,15 +33,24 @@ export function AuthModal({
 
     try {
       if (mode === 'signup') {
-        // Validate
-        if (!formData.name || !formData.email || !formData.password) {
-          setError('Please fill in all fields');
+        // Validate inputs
+        const name = sanitizeString(formData.name, 100);
+        if (!name || name.trim().length === 0) {
+          setError('Please enter your name');
           setLoading(false);
           return;
         }
 
-        if (formData.password.length < 8) {
-          setError('Password must be at least 8 characters');
+        const emailValidation = validateEmail(formData.email);
+        if (!emailValidation.valid) {
+          setError(emailValidation.error || 'Invalid email');
+          setLoading(false);
+          return;
+        }
+
+        const passwordValidation = validatePassword(formData.password);
+        if (!passwordValidation.valid) {
+          setError(passwordValidation.error || 'Invalid password');
           setLoading(false);
           return;
         }
@@ -59,9 +69,9 @@ export function AuthModal({
             'Authorization': `Bearer ${publicAnonKey}`
           },
           body: JSON.stringify({
-            email: formData.email,
+            email: formData.email.trim().toLowerCase(),
             password: formData.password,
-            name: formData.name
+            name: sanitizeString(formData.name, 100)
           })
         });
 
@@ -87,8 +97,15 @@ export function AuthModal({
         setLoading(false);
       } else {
         // Sign in
-        if (!formData.email || !formData.password) {
-          setError('Please enter email and password');
+        const emailValidation = validateEmail(formData.email);
+        if (!emailValidation.valid) {
+          setError(emailValidation.error || 'Invalid email');
+          setLoading(false);
+          return;
+        }
+
+        if (!formData.password || formData.password.length === 0) {
+          setError('Please enter your password');
           setLoading(false);
           return;
         }
@@ -101,7 +118,7 @@ export function AuthModal({
             'Authorization': `Bearer ${publicAnonKey}`
           },
           body: JSON.stringify({
-            email: formData.email,
+            email: formData.email.trim().toLowerCase(),
             password: formData.password
           })
         });

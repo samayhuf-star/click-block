@@ -774,7 +774,7 @@ app.post("/make-server-51144976/track-click", async (c) => {
                      "unknown";
 
     // Basic fraud detection (simplified)
-    const isFraudulent = detectFraud(clientIP, userAgent, referrer);
+    const isFraudulent = detectFraud(clientIP, userAgent, referrer, url);
     
     // Get current analytics
     const analyticsKey = `analytics:${website.id}`;
@@ -831,26 +831,44 @@ app.post("/make-server-51144976/track-click", async (c) => {
 });
 
 // Simple fraud detection function
-function detectFraud(ip: string, userAgent: string, referrer: string): boolean {
+function detectFraud(ip: string, userAgent: string, referrer: string, url?: string): boolean {
+  // Don't block localhost or unknown IPs
+  if (ip === "unknown" || !ip || ip === "127.0.0.1" || ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.16.")) {
+    return false;
+  }
+
   // Check for bot user agents
   const botPatterns = [
     /bot/i, /crawler/i, /spider/i, /scraper/i,
     /headless/i, /phantom/i, /selenium/i, /webdriver/i,
-    /curl/i, /wget/i, /python/i, /java/i
+    /curl/i, /wget/i, /python/i, /java/i, /go-http/i,
+    /httpclient/i, /scrapy/i, /mechanize/i
   ];
   
   if (botPatterns.some(pattern => pattern.test(userAgent))) {
     return true;
   }
 
-  // Check for suspicious IP patterns (simplified)
-  // In production, use a proper IP reputation service
-  if (ip === "unknown" || !ip || ip === "127.0.0.1") {
-    return false; // Don't block localhost
+  // Check for empty or suspicious user agents
+  if (!userAgent || userAgent.length < 10) {
+    return true;
   }
 
-  // Check for datacenter IPs (simplified - in production use MaxMind or similar)
-  // This is a basic check - you'd want to use a proper IP intelligence service
+  // Check for suspicious referrer patterns
+  if (referrer && (
+    referrer.includes('click-fraud') || 
+    referrer.includes('bot') ||
+    referrer.includes('scraper')
+  )) {
+    return true;
+  }
+
+  // In production, you would:
+  // 1. Check IP against threat intelligence databases
+  // 2. Use MaxMind GeoIP2 for datacenter detection
+  // 3. Check against VPN/proxy databases
+  // 4. Analyze behavioral patterns
+  // 5. Check click velocity and patterns
   
   return false; // Default to not fraudulent
 }

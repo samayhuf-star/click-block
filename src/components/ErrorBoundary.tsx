@@ -1,109 +1,89 @@
-import { Component, ReactNode } from "react";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
+import { Button } from './ui/button';
+import { Card } from './ui/card';
 
-interface ErrorBoundaryProps {
+interface Props {
   children: ReactNode;
   fallback?: ReactNode;
 }
 
-interface ErrorBoundaryState {
+interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: any;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
-  }
-
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error, errorInfo: null };
-  }
-
-  componentDidCatch(error: Error, errorInfo: any) {
-    // Log error to console with full details
-    console.error("🚨 Error caught by ErrorBoundary:", {
-      error: error,
-      errorMessage: error.message,
-      errorStack: error.stack,
-      componentStack: errorInfo?.componentStack,
-      timestamp: new Date().toISOString()
-    });
-
-    // Store error info in state
-    this.setState({ errorInfo });
-
-    // In production, you could send this to an error tracking service
-    // e.g., Sentry, LogRocket, etc.
-  }
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+export class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null
   };
 
-  render() {
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // In production, you might want to log this to an error reporting service
+    // e.g., Sentry, LogRocket, etc.
+    if (process.env.NODE_ENV === 'production') {
+      // Log to error tracking service
+      // logErrorToService(error, errorInfo);
+    }
+  }
+
+  private handleReset = () => {
+    this.setState({ hasError: false, error: null });
+    window.location.reload();
+  };
+
+  public render() {
     if (this.state.hasError) {
-      // Use custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
       return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-          <div className="max-w-2xl w-full bg-slate-900/50 backdrop-blur-xl border border-red-500/30 rounded-xl p-8 text-center">
-            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="w-10 h-10 text-red-400" />
-            </div>
-            
-            <h2 className="text-3xl font-bold text-white mb-3">Something went wrong</h2>
-            
-            <p className="text-slate-400 mb-2">
-              We're sorry for the inconvenience. An unexpected error has occurred.
-            </p>
-            
-            {this.state.error?.message && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6 mt-4">
-                <p className="text-sm text-red-300 font-mono">
-                  {this.state.error.message}
-                </p>
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+          <Card className="p-8 max-w-md w-full bg-slate-800 border-red-500/20">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-red-400" />
               </div>
-            )}
-
-            {process.env.NODE_ENV === 'development' && this.state.error?.stack && (
-              <details className="text-left bg-slate-950/50 rounded-lg p-4 mb-6">
-                <summary className="text-sm text-slate-400 cursor-pointer mb-2">
-                  Stack Trace (Development Only)
-                </summary>
-                <pre className="text-xs text-red-300 overflow-x-auto">
-                  {this.state.error.stack}
-                </pre>
-              </details>
-            )}
-            
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={this.handleReset}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg text-white transition-all flex items-center gap-2 font-semibold"
-              >
-                <RefreshCw className="w-5 h-5" />
-                Try Again
-              </button>
               
-              <button
-                onClick={() => window.location.href = '/'}
-                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-lg text-white transition-all flex items-center gap-2 font-semibold"
-              >
-                <Home className="w-5 h-5" />
-                Go Home
-              </button>
-            </div>
+              <h2 className="text-2xl font-bold text-white">Something went wrong</h2>
+              
+              <p className="text-slate-400">
+                We're sorry, but something unexpected happened. Please try refreshing the page.
+              </p>
 
-            <p className="text-xs text-slate-500 mt-6">
-              If this problem persists, please contact support at support@clickblock.co
-            </p>
-          </div>
+              {process.env.NODE_ENV === 'development' && this.state.error && (
+                <div className="mt-4 p-4 bg-slate-900 rounded-lg w-full text-left">
+                  <p className="text-xs text-red-400 font-mono break-all">
+                    {this.state.error.toString()}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={this.handleReset}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Reload Page
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/'}
+                  variant="outline"
+                  className="border-slate-600 text-slate-300 hover:text-white"
+                >
+                  Go Home
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       );
     }
