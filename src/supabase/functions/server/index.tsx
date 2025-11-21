@@ -3,6 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
 import * as stripeService from "./stripe.tsx";
+import { verifyWebhookSignature, getStripeInstance } from "./stripe.tsx";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { sanitizeUrl } from "./url_helper.tsx";
 import { fixAllDomains } from "./fix_domains.tsx";
@@ -1288,7 +1289,7 @@ app.get("/make-server-51144976/payment-history", async (c) => {
     }
 
     // Get payment intents/invoices for this customer
-    const stripeInstance = stripeService.getStripeInstance();
+    const stripeInstance = getStripeInstance();
     const invoices = await stripeInstance.invoices.list({
       customer: customer.id,
       limit: 50
@@ -1311,6 +1312,79 @@ app.get("/make-server-51144976/payment-history", async (c) => {
       error: "Failed to fetch payment history",
       payments: []
     }, 500);
+  }
+});
+
+// Stripe webhook endpoint
+app.post("/make-server-51144976/stripe-webhook", async (c) => {
+  try {
+    const signature = c.req.header("stripe-signature");
+    const body = await c.req.text();
+    
+    if (!signature) {
+      return c.json({ error: "Missing stripe-signature header" }, 400);
+    }
+
+    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    if (!webhookSecret) {
+      console.error("STRIPE_WEBHOOK_SECRET not configured");
+      return c.json({ error: "Webhook secret not configured" }, 500);
+    }
+
+    // Verify webhook signature
+    const event = verifyWebhookSignature(body, signature, webhookSecret);
+
+    console.log(`Received Stripe webhook: ${event.type}`);
+
+    // Handle different event types
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const session = event.data.object as any;
+        console.log('Checkout session completed:', session.id);
+        // Update user subscription status in database
+        // TODO: Update user metadata with subscription info
+        break;
+
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        const subscription = event.data.object as any;
+        console.log('Subscription updated:', subscription.id);
+        // Update subscription status in database
+        // TODO: Sync subscription status with user account
+        break;
+
+      case 'customer.subscription.deleted':
+        const deletedSubscription = event.data.object as any;
+        console.log('Subscription cancelled:', deletedSubscription.id);
+        // Update subscription status to cancelled
+        // TODO: Update user metadata
+        break;
+
+      case 'invoice.payment_succeeded':
+        const invoice = event.data.object as any;
+        console.log('Payment succeeded:', invoice.id);
+        // Log successful payment
+        // TODO: Update payment history
+        break;
+
+      case 'invoice.payment_failed':
+        const failedInvoice = event.data.object as any;
+        console.log('Payment failed:', failedInvoice.id);
+        // Handle failed payment
+        // TODO: Notify user, update subscription status
+        break;
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    return c.json({ received: true });
+  } catch (error) {
+    console.error("Error processing webhook:", error);
+    return c.json({ 
+      error: "Webhook processing failed",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 400);
   }
 });
 

@@ -288,25 +288,6 @@ export const analyticsAPI = {
   }
 };
 
-// Settings API
-export const settingsAPI = {
-  get: async () => {
-    const res = await fetch(`${API_BASE}/settings`, { headers: getHeaders() });
-    if (!res.ok) throw new Error('Failed to fetch settings');
-    return res.json();
-  },
-  
-  update: async (settings: any) => {
-    const res = await fetch(`${API_BASE}/settings`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(settings)
-    });
-    if (!res.ok) throw new Error('Failed to update settings');
-    return res.json();
-  }
-};
-
 // Click Tracking API
 export const trackingAPI = {
   trackClick: async (snippetId: string, ip: string, userAgent: string, referrer: string) => {
@@ -494,6 +475,43 @@ export const stripeAPI = {
       return res.json();
     } catch (error) {
       console.error('API Error (create checkout session):', error);
+      throw error;
+    }
+  }
+};
+
+// User Settings API
+export const settingsAPI = {
+  get: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/user/settings`, {
+        headers: getHeaders(true)
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || 'Failed to fetch settings');
+      }
+      return res.json();
+    } catch (error) {
+      console.error('API Error (get settings):', error);
+      throw error;
+    }
+  },
+  
+  save: async (settings: any) => {
+    try {
+      const res = await fetch(`${API_BASE}/user/settings`, {
+        method: 'POST',
+        headers: getHeaders(true),
+        body: JSON.stringify(settings)
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || 'Failed to save settings');
+      }
+      return res.json();
+    } catch (error) {
+      console.error('API Error (save settings):', error);
       throw error;
     }
   }

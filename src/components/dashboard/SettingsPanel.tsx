@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -10,17 +10,20 @@ import {
   Bell, 
   Shield, 
   Link2,
-  Save
+  Save,
+  Loader2
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription } from "../ui/alert";
+import { settingsAPI } from "../../utils/api";
+import { toast } from "sonner@2.0.3";
 
 export function SettingsPanel() {
   const [settings, setSettings] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    company: "Acme Corp",
+    name: "",
+    email: "",
+    company: "",
     emailNotifications: true,
     weeklyReports: true,
     fraudAlerts: true,
@@ -31,11 +34,58 @@ export function SettingsPanel() {
   });
 
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    // Save settings logic here
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoading(true);
+      const userSession = localStorage.getItem('clickblock_user_session');
+      if (userSession) {
+        const session = JSON.parse(userSession);
+        if (session.email) {
+          setSettings(prev => ({
+            ...prev,
+            email: session.email,
+            name: session.name || ""
+          }));
+        }
+      }
+      
+      // Try to load saved settings from API
+      try {
+        const data = await settingsAPI.get();
+        if (data.settings) {
+          setSettings(prev => ({ ...prev, ...data.settings }));
+        }
+      } catch (error) {
+        // Settings endpoint may not exist yet, use defaults
+        console.log("Using default settings");
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await settingsAPI.save(settings);
+      setSaved(true);
+      toast.success("Settings saved successfully");
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast.error("Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -236,10 +286,20 @@ export function SettingsPanel() {
       <div className="flex gap-3">
         <Button 
           onClick={handleSave}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+          disabled={saving}
+          className="bg-orange-500 hover:bg-orange-600 text-black font-medium disabled:opacity-50"
         >
-          <Save className="w-4 h-4 mr-2" />
-          Save Changes
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Save Changes
+            </>
+          )}
         </Button>
         <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
           Cancel
