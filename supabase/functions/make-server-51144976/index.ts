@@ -776,6 +776,69 @@ app.post("/make-server-51144976/track-click", async (c) => {
     // Basic fraud detection (simplified)
     const isFraudulent = detectFraud(clientIP, userAgent, referrer, url);
     
+    // Extract device type from user agent
+    const getDeviceType = (ua: string): string => {
+      if (!ua) return 'unknown';
+      const uaLower = ua.toLowerCase();
+      if (/mobile|android|iphone|ipod|blackberry|opera mini|opera mobi|skyfire|maemo|windows phone|palm|iemobile|symbian|symbianos|fennec/i.test(uaLower)) {
+        return 'mobile';
+      }
+      if (/ipad|tablet|playbook|silk/i.test(uaLower)) {
+        return 'tablet';
+      }
+      if (/bot|crawler|spider|scraper|headless|phantom|selenium|webdriver/i.test(uaLower)) {
+        return 'bot';
+      }
+      return 'desktop';
+    };
+
+    // Extract browser from user agent
+    const getBrowser = (ua: string): string => {
+      if (!ua) return 'other';
+      const uaLower = ua.toLowerCase();
+      if (/chrome/i.test(uaLower) && !/edg|opr/i.test(uaLower)) return 'chrome';
+      if (/safari/i.test(uaLower) && !/chrome|crios|fxios/i.test(uaLower)) return 'safari';
+      if (/firefox|fxios/i.test(uaLower)) return 'firefox';
+      if (/edg|edge/i.test(uaLower)) return 'edge';
+      if (/opr|opera/i.test(uaLower)) return 'opera';
+      if (/msie|trident/i.test(uaLower)) return 'ie';
+      return 'other';
+    };
+
+    // Extract country from IP (simplified - in production use GeoIP service)
+    const getCountryFromIP = (ip: string): string => {
+      // For now, use a simple mapping based on IP ranges
+      // In production, you'd use MaxMind GeoIP2 or similar service
+      if (!ip || ip === 'unknown' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.16.')) {
+        return 'Unknown';
+      }
+      
+      // Simple country detection based on common patterns
+      // This is a placeholder - in production use a proper GeoIP service
+      const countryMap: { [key: string]: string } = {
+        'US': 'United States',
+        'UK': 'United Kingdom',
+        'CA': 'Canada',
+        'AU': 'Australia',
+        'DE': 'Germany',
+        'FR': 'France',
+        'JP': 'Japan',
+        'CN': 'China',
+        'IN': 'India',
+        'BR': 'Brazil'
+      };
+      
+      // For demo purposes, assign countries randomly based on IP hash
+      // In production, replace with actual GeoIP lookup
+      const hash = ip.split('.').reduce((acc, val) => acc + parseInt(val || '0'), 0);
+      const countries = Object.values(countryMap);
+      return countries[hash % countries.length] || 'Unknown';
+    };
+
+    const deviceType = getDeviceType(userAgent);
+    const browser = getBrowser(userAgent);
+    const country = getCountryFromIP(clientIP);
+
     // Get current analytics
     const analyticsKey = `analytics:${website.id}`;
     let analytics = await kv.get(analyticsKey) || {
@@ -783,7 +846,11 @@ app.post("/make-server-51144976/track-click", async (c) => {
       fraudulentClicks: 0,
       blockedIPs: 0,
       clicksByDate: {},
-      fraudByDate: {}
+      fraudByDate: {},
+      geographic: {},
+      devices: { desktop: 0, mobile: 0, tablet: 0, bot: 0 },
+      browsers: { chrome: 0, safari: 0, firefox: 0, edge: 0, opera: 0, ie: 0, other: 0 },
+      fraudSources: { botNetworks: 0, vpnTraffic: 0, datacenterIPs: 0, suspiciousPatterns: 0 }
     };
 
     // Update analytics
@@ -792,9 +859,46 @@ app.post("/make-server-51144976/track-click", async (c) => {
     const today = new Date().toISOString().split('T')[0];
     analytics.clicksByDate[today] = (analytics.clicksByDate[today] || 0) + 1;
 
+    // Update geographic data
+    if (!analytics.geographic[country]) {
+      analytics.geographic[country] = { clicks: 0, fraud: 0 };
+    }
+    analytics.geographic[country].clicks += 1;
+
+    // Update device data
+    if (deviceType === 'desktop') analytics.devices.desktop = (analytics.devices.desktop || 0) + 1;
+    else if (deviceType === 'mobile') analytics.devices.mobile = (analytics.devices.mobile || 0) + 1;
+    else if (deviceType === 'tablet') analytics.devices.tablet = (analytics.devices.tablet || 0) + 1;
+    else if (deviceType === 'bot') analytics.devices.bot = (analytics.devices.bot || 0) + 1;
+
+    // Update browser data
+    if (browser === 'chrome') analytics.browsers.chrome = (analytics.browsers.chrome || 0) + 1;
+    else if (browser === 'safari') analytics.browsers.safari = (analytics.browsers.safari || 0) + 1;
+    else if (browser === 'firefox') analytics.browsers.firefox = (analytics.browsers.firefox || 0) + 1;
+    else if (browser === 'edge') analytics.browsers.edge = (analytics.browsers.edge || 0) + 1;
+    else if (browser === 'opera') analytics.browsers.opera = (analytics.browsers.opera || 0) + 1;
+    else if (browser === 'ie') analytics.browsers.ie = (analytics.browsers.ie || 0) + 1;
+    else analytics.browsers.other = (analytics.browsers.other || 0) + 1;
+
     if (isFraudulent) {
       analytics.fraudulentClicks = (analytics.fraudulentClicks || 0) + 1;
       analytics.fraudByDate[today] = (analytics.fraudByDate[today] || 0) + 1;
+      
+      // Update geographic fraud
+      analytics.geographic[country].fraud += 1;
+      
+      // Update fraud sources
+      if (deviceType === 'bot') {
+        analytics.fraudSources.botNetworks = (analytics.fraudSources.botNetworks || 0) + 1;
+      } else if (referrer && referrer.includes('vpn') || referrer.includes('proxy')) {
+        analytics.fraudSources.vpnTraffic = (analytics.fraudSources.vpnTraffic || 0) + 1;
+      } else if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.')) {
+        // Simple heuristic: if IP doesn't look like private IP, might be datacenter
+        // In production, use proper datacenter IP database
+        analytics.fraudSources.datacenterIPs = (analytics.fraudSources.datacenterIPs || 0) + 1;
+      } else {
+        analytics.fraudSources.suspiciousPatterns = (analytics.fraudSources.suspiciousPatterns || 0) + 1;
+      }
       
       // Add to blocked IPs if not already there
       if (!website.blockedIPs.includes(clientIP)) {
@@ -891,7 +995,11 @@ app.get("/make-server-51144976/analytics/:id", async (c) => {
       fraudulentClicks: 0,
       blockedIPs: 0,
       clicksByDate: {},
-      fraudByDate: {}
+      fraudByDate: {},
+      geographic: {},
+      devices: { desktop: 0, mobile: 0, tablet: 0, bot: 0 },
+      browsers: { chrome: 0, safari: 0, firefox: 0, edge: 0, opera: 0, ie: 0, other: 0 },
+      fraudSources: { botNetworks: 0, vpnTraffic: 0, datacenterIPs: 0, suspiciousPatterns: 0 }
     };
 
     return c.json({
@@ -900,7 +1008,11 @@ app.get("/make-server-51144976/analytics/:id", async (c) => {
         fraudulentClicks: analytics.fraudulentClicks || 0,
         blockedIPs: analytics.blockedIPs || 0,
         clicksByDate: analytics.clicksByDate || {},
-        fraudByDate: analytics.fraudByDate || {}
+        fraudByDate: analytics.fraudByDate || {},
+        geographic: analytics.geographic || {},
+        devices: analytics.devices || { desktop: 0, mobile: 0, tablet: 0, bot: 0 },
+        browsers: analytics.browsers || { chrome: 0, safari: 0, firefox: 0, edge: 0, opera: 0, ie: 0, other: 0 },
+        fraudSources: analytics.fraudSources || { botNetworks: 0, vpnTraffic: 0, datacenterIPs: 0, suspiciousPatterns: 0 }
       },
       website: {
         id: website.id,
@@ -930,7 +1042,11 @@ app.get("/make-server-51144976/analytics", async (c) => {
       fraudulentClicks: analyticsData[index]?.fraudulentClicks || 0,
       blockedIPs: analyticsData[index]?.blockedIPs || 0,
       clicksByDate: analyticsData[index]?.clicksByDate || {},
-      fraudByDate: analyticsData[index]?.fraudByDate || {}
+      fraudByDate: analyticsData[index]?.fraudByDate || {},
+      geographic: analyticsData[index]?.geographic || {},
+      devices: analyticsData[index]?.devices || { desktop: 0, mobile: 0, tablet: 0, bot: 0 },
+      browsers: analyticsData[index]?.browsers || { chrome: 0, safari: 0, firefox: 0, edge: 0, opera: 0, ie: 0, other: 0 },
+      fraudSources: analyticsData[index]?.fraudSources || { botNetworks: 0, vpnTraffic: 0, datacenterIPs: 0, suspiciousPatterns: 0 }
     }));
 
     return c.json({ analytics });

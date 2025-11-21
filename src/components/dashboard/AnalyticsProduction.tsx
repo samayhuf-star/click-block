@@ -256,7 +256,10 @@ export function AnalyticsProduction() {
     'Germany': '🇩🇪',
     'France': '🇫🇷',
     'India': '🇮🇳',
-    'Japan': '🇯🇵'
+    'Japan': '🇯🇵',
+    'China': '🇨🇳',
+    'Brazil': '🇧🇷',
+    'Unknown': '🌍'
   };
 
   if (loading) {
