@@ -84,7 +84,8 @@ export function AuthModal({
         const userSession = {
           id: data.user.id,
           name: formData.name,
-          email: formData.email,
+          email: formData.email.trim().toLowerCase(),
+          role: data.user.user_metadata?.role || 'customer',
           plan: 'trial',
           accessToken: data.access_token
         };
@@ -132,7 +133,8 @@ export function AuthModal({
         const userSession = {
           id: data.user.id,
           name: data.user.user_metadata?.name || 'User',
-          email: formData.email,
+          email: formData.email.trim().toLowerCase(),
+          role: data.user.user_metadata?.role || 'customer',
           plan: data.user.user_metadata?.plan || 'professional',
           accessToken: data.access_token
         };

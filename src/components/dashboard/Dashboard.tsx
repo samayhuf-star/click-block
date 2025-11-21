@@ -70,9 +70,10 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   
   // Check if user is superadmin
+  const userEmail = currentUser?.email?.toLowerCase()?.trim();
   const isSuperAdmin = currentUser?.role === "super_admin" || 
-                        currentUser?.email === "admin@clickblock.co" || 
-                        currentUser?.email === "sam@sam.com";
+                        userEmail === "admin@clickblock.co" || 
+                        userEmail === "sam@sam.com";
 
   const [viewMode, setViewMode] = useState<'selection' | 'normal' | 'super_admin'>(
     isSuperAdmin ? 'selection' : 'normal'
