@@ -295,8 +295,7 @@ export function IPManagement() {
                 </div>
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="border-red-500/30 hover:bg-red-500/20"
+                  className="bg-red-500 hover:bg-red-600 text-white"
                   onClick={() => deleteIP(entry.id, type)}
                 >
                   <Trash2 className="w-4 h-4" />
