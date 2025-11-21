@@ -207,12 +207,18 @@ export const analyticsAPI = {
       if (!res.ok) {
         const errorText = await res.text().catch(() => 'Unknown error');
         console.error('Analytics API error:', errorText);
-        throw new Error('Failed to fetch analytics');
+        // Return empty data instead of throwing to prevent UI from breaking
+        return { analytics: [] };
       }
-      return res.json();
+      const data = await res.json();
+      // Ensure analytics is always an array
+      return {
+        analytics: Array.isArray(data.analytics) ? data.analytics : (data.analytics ? [data.analytics] : [])
+      };
     } catch (error) {
       console.error('API Error (get analytics):', error);
-      throw error;
+      // Return empty data instead of throwing to prevent UI from breaking
+      return { analytics: [] };
     }
   },
   
@@ -240,24 +246,43 @@ export const analyticsAPI = {
       if (!res.ok) {
         const errorText = await res.text().catch(() => 'Unknown error');
         console.error('Overview API error response:', errorText);
-        throw new Error(`Failed to fetch overview: ${res.status} ${res.statusText}`);
+        // Return default data instead of throwing to prevent UI from breaking
+        return {
+          totalClicks: 0,
+          fraudulentClicks: 0,
+          blockedIPs: 0,
+          savingsEstimate: 0,
+          activeWebsites: 0,
+          totalWebsites: 0
+        };
       }
       
       const data = await res.json();
       console.log('Overview data received:', data);
+      
+      // Ensure we return data in the expected format
+      if (data.error) {
+        return {
+          totalClicks: 0,
+          fraudulentClicks: 0,
+          blockedIPs: 0,
+          savingsEstimate: 0,
+          activeWebsites: 0,
+          totalWebsites: 0
+        };
+      }
+      
       return data;
     } catch (error) {
       console.error('API Error (get overview):', error);
       // Return default data instead of throwing to prevent UI from breaking
       return {
-        overview: {
-          totalClicks: 0,
-          fraudulentClicks: 0,
-          blockedIPs: 0,
-          savingsAmount: 0,
-          activeWebsites: 0,
-          totalWebsites: 0
-        }
+        totalClicks: 0,
+        fraudulentClicks: 0,
+        blockedIPs: 0,
+        savingsEstimate: 0,
+        activeWebsites: 0,
+        totalWebsites: 0
       };
     }
   }

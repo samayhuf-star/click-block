@@ -516,24 +516,29 @@ app.post("/make-server-51144976/signin", async (c) => {
 app.get("/make-server-51144976/overview", async (c) => {
   try {
     // Get all websites
-    const websites = await kv.getByPrefix("website:");
+    const websites = await kv.getByPrefix("website:") || [];
+    
+    // Ensure websites is an array
+    const websitesArray = Array.isArray(websites) ? websites : [];
     
     // Get all analytics
-    const analyticsKeys = websites.map((w: any) => `analytics:${w.id}`);
-    const analyticsData = await kv.mget(analyticsKeys);
+    const analyticsKeys = websitesArray.map((w: any) => `analytics:${w.id || w.key?.replace('website:', '')}`);
+    const analyticsData = analyticsKeys.length > 0 ? await kv.mget(analyticsKeys) : [];
     
     // Calculate totals
     let totalClicks = 0;
     let fraudulentClicks = 0;
     let blockedIPs = 0;
     
-    analyticsData.forEach((analytics: any) => {
-      if (analytics) {
-        totalClicks += analytics.totalClicks || 0;
-        fraudulentClicks += analytics.fraudulentClicks || 0;
-        blockedIPs += analytics.blockedIPs || 0;
-      }
-    });
+    if (Array.isArray(analyticsData)) {
+      analyticsData.forEach((analytics: any) => {
+        if (analytics) {
+          totalClicks += analytics.totalClicks || 0;
+          fraudulentClicks += analytics.fraudulentClicks || 0;
+          blockedIPs += analytics.blockedIPs || 0;
+        }
+      });
+    }
     
     // Calculate percentages
     const fraudRate = totalClicks > 0 ? ((fraudulentClicks / totalClicks) * 100).toFixed(1) : "0.0";
@@ -545,12 +550,21 @@ app.get("/make-server-51144976/overview", async (c) => {
       blockedIPs,
       fraudRate: parseFloat(fraudRate),
       savingsEstimate: parseFloat(savingsEstimate),
-      activeWebsites: websites.filter((w: any) => w.status === "active").length,
-      totalWebsites: websites.length
+      activeWebsites: websitesArray.filter((w: any) => (w.status || w.value?.status) === "active").length,
+      totalWebsites: websitesArray.length
     });
   } catch (error) {
     console.error("Error fetching overview:", error);
-    return c.json({ error: "Failed to fetch overview data" }, 500);
+    // Return default values instead of error to prevent UI breakage
+    return c.json({
+      totalClicks: 0,
+      fraudulentClicks: 0,
+      blockedIPs: 0,
+      fraudRate: 0,
+      savingsEstimate: 0,
+      activeWebsites: 0,
+      totalWebsites: 0
+    });
   }
 });
 
@@ -1030,29 +1044,41 @@ app.get("/make-server-51144976/analytics/:id", async (c) => {
 // Get all analytics
 app.get("/make-server-51144976/analytics", async (c) => {
   try {
-    const websites = await kv.getByPrefix("website:");
-    const analyticsKeys = websites.map((w: any) => `analytics:${w.id}`);
-    const analyticsData = await kv.mget(analyticsKeys);
+    const websites = await kv.getByPrefix("website:") || [];
+    const websitesArray = Array.isArray(websites) ? websites : [];
     
-    const analytics = websites.map((website: any, index: number) => ({
-      websiteId: website.id,
-      websiteName: website.name,
-      snippetId: website.snippetId,
-      totalClicks: analyticsData[index]?.totalClicks || 0,
-      fraudulentClicks: analyticsData[index]?.fraudulentClicks || 0,
-      blockedIPs: analyticsData[index]?.blockedIPs || 0,
-      clicksByDate: analyticsData[index]?.clicksByDate || {},
-      fraudByDate: analyticsData[index]?.fraudByDate || {},
-      geographic: analyticsData[index]?.geographic || {},
-      devices: analyticsData[index]?.devices || { desktop: 0, mobile: 0, tablet: 0, bot: 0 },
-      browsers: analyticsData[index]?.browsers || { chrome: 0, safari: 0, firefox: 0, edge: 0, opera: 0, ie: 0, other: 0 },
-      fraudSources: analyticsData[index]?.fraudSources || { botNetworks: 0, vpnTraffic: 0, datacenterIPs: 0, suspiciousPatterns: 0 }
-    }));
+    if (websitesArray.length === 0) {
+      return c.json({ analytics: [] });
+    }
+    
+    const analyticsKeys = websitesArray.map((w: any) => `analytics:${w.id || w.key?.replace('website:', '')}`);
+    const analyticsData = analyticsKeys.length > 0 ? await kv.mget(analyticsKeys) : [];
+    
+    const analytics = websitesArray.map((website: any, index: number) => {
+      const websiteData = website.value || website;
+      const analyticsItem = Array.isArray(analyticsData) ? analyticsData[index] : null;
+      
+      return {
+        websiteId: websiteData.id || website.key?.replace('website:', ''),
+        websiteName: websiteData.name || 'Unknown',
+        snippetId: websiteData.snippetId || '',
+        totalClicks: analyticsItem?.totalClicks || 0,
+        fraudulentClicks: analyticsItem?.fraudulentClicks || 0,
+        blockedIPs: analyticsItem?.blockedIPs || 0,
+        clicksByDate: analyticsItem?.clicksByDate || {},
+        fraudByDate: analyticsItem?.fraudByDate || {},
+        geographic: analyticsItem?.geographic || {},
+        devices: analyticsItem?.devices || { desktop: 0, mobile: 0, tablet: 0, bot: 0 },
+        browsers: analyticsItem?.browsers || { chrome: 0, safari: 0, firefox: 0, edge: 0, opera: 0, ie: 0, other: 0 },
+        fraudSources: analyticsItem?.fraudSources || { botNetworks: 0, vpnTraffic: 0, datacenterIPs: 0, suspiciousPatterns: 0 }
+      };
+    });
 
     return c.json({ analytics });
   } catch (error) {
     console.error("Error fetching all analytics:", error);
-    return c.json({ error: "Failed to fetch analytics" }, 500);
+    // Return empty array instead of error to prevent UI breakage
+    return c.json({ analytics: [] });
   }
 });
 

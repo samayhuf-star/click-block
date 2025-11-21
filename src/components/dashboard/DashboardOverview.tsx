@@ -33,19 +33,26 @@ export function DashboardOverview() {
 
   const loadOverview = async () => {
     try {
+      setLoading(true);
       const [overviewData, analyticsData] = await Promise.all([
         analyticsAPI.getOverview(),
         analyticsAPI.getAll()
       ]);
       
+      console.log('Overview data:', overviewData);
+      console.log('Analytics data:', analyticsData);
+      
+      // Handle case where overviewData might be wrapped or have error
+      const overview = overviewData.overview || overviewData;
+      
       // Set stats from overview
       setStats({
-        totalClicks: overviewData.totalClicks || 0,
-        fraudulentClicks: overviewData.fraudulentClicks || 0,
-        blockedIPs: overviewData.blockedIPs || 0,
-        savingsAmount: overviewData.savingsEstimate || 0,
-        activeWebsites: overviewData.activeWebsites || 0,
-        totalWebsites: overviewData.totalWebsites || 0
+        totalClicks: overview.totalClicks || 0,
+        fraudulentClicks: overview.fraudulentClicks || 0,
+        blockedIPs: overview.blockedIPs || 0,
+        savingsAmount: overview.savingsEstimate || overview.savingsAmount || 0,
+        activeWebsites: overview.activeWebsites || 0,
+        totalWebsites: overview.totalWebsites || 0
       });
 
       // Process traffic data for last 7 days
@@ -80,14 +87,39 @@ export function DashboardOverview() {
 
       setTrafficData(trafficByDate);
 
-      // Calculate fraud sources
-      const totalFraud = overviewData.fraudulentClicks || 0;
-      setFraudSources({
-        botNetworks: Math.floor(totalFraud * 0.44),
-        vpnTraffic: Math.floor(totalFraud * 0.30),
-        datacenterIPs: Math.floor(totalFraud * 0.18),
-        suspiciousPatterns: Math.floor(totalFraud * 0.08)
-      });
+      // Calculate fraud sources from actual analytics data if available
+      const totalFraud = overview.fraudulentClicks || 0;
+      
+      // Try to get fraud sources from analytics data if available
+      let fraudSourcesData = {
+        botNetworks: 0,
+        vpnTraffic: 0,
+        datacenterIPs: 0,
+        suspiciousPatterns: 0
+      };
+      
+      if (analyticsData.analytics && Array.isArray(analyticsData.analytics)) {
+        analyticsData.analytics.forEach((analytics: any) => {
+          if (analytics.fraudSources) {
+            fraudSourcesData.botNetworks += analytics.fraudSources.botNetworks || 0;
+            fraudSourcesData.vpnTraffic += analytics.fraudSources.vpnTraffic || 0;
+            fraudSourcesData.datacenterIPs += analytics.fraudSources.datacenterIPs || 0;
+            fraudSourcesData.suspiciousPatterns += analytics.fraudSources.suspiciousPatterns || 0;
+          }
+        });
+      }
+      
+      // Use actual data if available, otherwise use estimates
+      if (fraudSourcesData.botNetworks === 0 && totalFraud > 0) {
+        fraudSourcesData = {
+          botNetworks: Math.floor(totalFraud * 0.44),
+          vpnTraffic: Math.floor(totalFraud * 0.30),
+          datacenterIPs: Math.floor(totalFraud * 0.18),
+          suspiciousPatterns: Math.floor(totalFraud * 0.08)
+        };
+      }
+      
+      setFraudSources(fraudSourcesData);
 
       setLoading(false);
     } catch (error) {
