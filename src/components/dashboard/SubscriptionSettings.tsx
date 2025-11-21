@@ -40,14 +40,39 @@ export function SubscriptionSettings() {
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Get user email from settings or localStorage
-  const userEmail = "user@example.com"; // In production, get from auth context
+  // Get user email from localStorage or currentUser prop
+  const getUserEmail = (): string => {
+    try {
+      const userSession = localStorage.getItem('clickblock_user_session');
+      if (userSession) {
+        const session = JSON.parse(userSession);
+        if (session.email) {
+          return session.email;
+        }
+      }
+    } catch (e) {
+      console.error('Error getting user email:', e);
+    }
+    // Fallback to a default or show error
+    return '';
+  };
+
+  const userEmail = getUserEmail();
 
   useEffect(() => {
-    loadSubscription();
-  }, []);
+    if (userEmail) {
+      loadSubscription();
+    } else {
+      setLoading(false);
+    }
+  }, [userEmail]);
 
   const loadSubscription = async () => {
+    if (!userEmail) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const result = await getSubscriptionStatus(userEmail);
@@ -59,7 +84,11 @@ export function SubscriptionSettings() {
       }
     } catch (error) {
       console.error("Error loading subscription:", error);
-      toast.error("Failed to load subscription details");
+      // Don't show error if user just doesn't have a subscription
+      if (error instanceof Error && !error.message.includes('not found')) {
+        toast.error("Failed to load subscription details");
+      }
+      setSubscription(null);
     } finally {
       setLoading(false);
     }
@@ -88,6 +117,22 @@ export function SubscriptionSettings() {
         <div className="flex items-center justify-center gap-3">
           <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
           <span className="text-slate-400">Loading subscription details...</span>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!userEmail) {
+    return (
+      <Card className="p-8 bg-slate-900/50 border-white/10">
+        <div className="text-center space-y-4">
+          <AlertCircle className="w-16 h-16 text-slate-400 mx-auto" />
+          <div>
+            <h3 className="text-xl font-bold text-white mb-2">Please Sign In</h3>
+            <p className="text-slate-400 mb-6">
+              You need to be signed in to view your subscription details.
+            </p>
+          </div>
         </div>
       </Card>
     );

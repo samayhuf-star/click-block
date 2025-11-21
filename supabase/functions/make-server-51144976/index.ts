@@ -1117,5 +1117,180 @@ app.post("/make-server-51144976/test-track", async (c) => {
   }
 });
 
+// ============ SUBSCRIPTION & BILLING ROUTES ============
+
+// Get subscription status by email
+app.get("/make-server-51144976/subscription-status", async (c) => {
+  try {
+    const email = c.req.query("email");
+    
+    if (!email) {
+      return c.json({ error: "Email is required" }, 400);
+    }
+
+    // Get customer from Stripe by email
+    const customer = await stripeService.getCustomerByEmail(email);
+    
+    if (!customer) {
+      return c.json({
+        hasActiveSubscription: false,
+        subscription: null
+      });
+    }
+
+    // Get active subscriptions for this customer
+    const subscriptions = await stripeService.listCustomerSubscriptions(customer.id);
+    
+    if (subscriptions.length === 0) {
+      return c.json({
+        hasActiveSubscription: false,
+        subscription: null
+      });
+    }
+
+    // Get the most recent active subscription
+    const activeSubscription = subscriptions[0];
+    const planId = activeSubscription.metadata?.planId || 'starter';
+    const planName = activeSubscription.metadata?.planName || 'Starter';
+    const billingPeriod = activeSubscription.metadata?.billingPeriod || 'monthly';
+
+    // Get plan details
+    const plan = await kv.get(`plan:${planId}`) || {
+      name: planName,
+      amount: activeSubscription.items.data[0]?.price?.unit_amount ? activeSubscription.items.data[0].price.unit_amount / 100 : 29.99
+    };
+
+    return c.json({
+      hasActiveSubscription: true,
+      subscription: {
+        customerId: customer.id,
+        customerEmail: customer.email || email,
+        subscriptionId: activeSubscription.id,
+        planId: planId,
+        planName: planName,
+        billingPeriod: billingPeriod,
+        status: activeSubscription.status,
+        amount: plan.amount || (activeSubscription.items.data[0]?.price?.unit_amount ? activeSubscription.items.data[0].price.unit_amount / 100 : 29.99),
+        currency: activeSubscription.currency || 'usd',
+        createdAt: new Date(activeSubscription.created * 1000).toISOString(),
+        currentPeriodStart: new Date(activeSubscription.current_period_start * 1000).toISOString(),
+        currentPeriodEnd: new Date(activeSubscription.current_period_end * 1000).toISOString(),
+        lastPaymentDate: activeSubscription.latest_invoice ? new Date(activeSubscription.latest_invoice * 1000).toISOString() : undefined,
+        paymentFailed: activeSubscription.status === 'past_due' || activeSubscription.status === 'unpaid'
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching subscription status:", error);
+    return c.json({ 
+      hasActiveSubscription: false,
+      error: "Failed to fetch subscription status",
+      subscription: null
+    }, 500);
+  }
+});
+
+// Create Stripe checkout session
+app.post("/make-server-51144976/create-checkout-session", async (c) => {
+  try {
+    const { planId, planName, amount, billingPeriod, customerEmail } = await c.req.json();
+    
+    if (!planId || !planName || !amount) {
+      return c.json({ error: "Missing required fields" }, 400);
+    }
+
+    const origin = c.req.header("origin") || "https://clickblock.co";
+    const successUrl = `${origin}/dashboard?subscription=success`;
+    const cancelUrl = `${origin}/dashboard?subscription=cancelled`;
+
+    const session = await stripeService.createCheckoutSession({
+      planId,
+      planName,
+      amount: Math.round(amount * 100), // Convert to cents
+      billingPeriod: billingPeriod || 'monthly',
+      customerEmail,
+      successUrl,
+      cancelUrl
+    });
+
+    return c.json({ url: session.url });
+  } catch (error) {
+    console.error("Error creating checkout session:", error);
+    return c.json({ 
+      error: "Failed to create checkout session",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
+  }
+});
+
+// Create Stripe customer portal session
+app.post("/make-server-51144976/create-portal-session", async (c) => {
+  try {
+    const { customerId } = await c.req.json();
+    
+    if (!customerId) {
+      return c.json({ error: "Customer ID is required" }, 400);
+    }
+
+    const origin = c.req.header("origin") || "https://clickblock.co";
+    const returnUrl = `${origin}/dashboard?tab=subscription`;
+
+    const session = await stripeService.createPortalSession(customerId, returnUrl);
+
+    return c.json({ url: session.url });
+  } catch (error) {
+    console.error("Error creating portal session:", error);
+    return c.json({ 
+      error: "Failed to create portal session",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
+  }
+});
+
+// Get payment history
+app.get("/make-server-51144976/payment-history", async (c) => {
+  try {
+    const email = c.req.query("email");
+    
+    if (!email) {
+      return c.json({ error: "Email is required" }, 400);
+    }
+
+    const customer = await stripeService.getCustomerByEmail(email);
+    
+    if (!customer) {
+      return c.json({ payments: [] });
+    }
+
+    // Get payment intents/invoices for this customer
+    // Import stripe directly for invoice listing
+    const StripeLib = await import("npm:stripe@17.5.0");
+    const stripeInstance = new StripeLib.default(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2024-11-20.acacia",
+    });
+    const invoices = await stripeInstance.invoices.list({
+      customer: customer.id,
+      limit: 50
+    });
+
+    const payments = invoices.data.map(invoice => ({
+      id: invoice.id,
+      amount: invoice.amount_paid / 100,
+      currency: invoice.currency,
+      status: invoice.status,
+      date: new Date(invoice.created * 1000).toISOString(),
+      description: invoice.description || `Payment for ${invoice.lines.data[0]?.description || 'subscription'}`,
+      invoiceUrl: invoice.hosted_invoice_url
+    }));
+
+    return c.json({ payments });
+  } catch (error) {
+    console.error("Error fetching payment history:", error);
+    return c.json({ 
+      error: "Failed to fetch payment history",
+      payments: []
+    }, 500);
+  }
+});
+
 // Start the server
 Deno.serve(app.fetch);
