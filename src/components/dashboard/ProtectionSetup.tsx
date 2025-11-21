@@ -234,7 +234,7 @@ export function ProtectionSetup() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl text-white">Protection Rule</h2>
               <div className="flex gap-3">
-                <Button className="bg-blue-700 hover:bg-blue-800 text-white">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
                   Manage Detection Rules
                 </Button>
                 <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
@@ -296,12 +296,11 @@ export function ProtectionSetup() {
               <div className="flex gap-3 mt-6">
                 <Button
                   onClick={addThresholdRule}
-                  variant="outline"
-                  className="bg-blue-700 text-white hover:bg-blue-800 border-blue-700"
+                  className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
                 >
                   NEW RULES
                 </Button>
-                <Button className="bg-blue-700 text-white hover:bg-blue-800 ml-auto" onClick={saveThresholdRules}>
+                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium ml-auto" onClick={saveThresholdRules}>
                   UPDATE THRESHOLD RULES
                 </Button>
               </div>
@@ -329,7 +328,7 @@ export function ProtectionSetup() {
                   placeholder="Block Period"
                   className="flex-1 bg-slate-700 border-slate-600 text-white"
                 />
-                <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={saveBlockPeriod}>UPDATE</Button>
+                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium" onClick={saveBlockPeriod}>UPDATE</Button>
               </div>
             </div>
 
@@ -347,7 +346,7 @@ export function ProtectionSetup() {
                   placeholder="Refresh Rate"
                   className="flex-1 bg-slate-700 border-slate-600 text-white"
                 />
-                <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={saveRefreshRate}>UPDATE</Button>
+                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium" onClick={saveRefreshRate}>UPDATE</Button>
               </div>
             </div>
 
@@ -389,7 +388,7 @@ export function ProtectionSetup() {
                 placeholder="Enter IP addresses to exclude..."
                 className="min-h-32 bg-slate-700 border-slate-600 text-white mb-3"
               />
-              <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={saveManuallyExcludeIPs}>UPDATE</Button>
+              <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium" onClick={saveManuallyExcludeIPs}>UPDATE</Button>
             </div>
 
             {/* Whitelist IPs */}
@@ -404,7 +403,7 @@ export function ProtectionSetup() {
                 placeholder="Enter IP addresses to whitelist..."
                 className="min-h-32 bg-slate-700 border-slate-600 text-white mb-3"
               />
-              <Button className="bg-blue-700 text-white hover:bg-blue-800" onClick={saveWhitelistIPs}>UPDATE</Button>
+              <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium" onClick={saveWhitelistIPs}>UPDATE</Button>
             </div>
           </Card>
         </div>
@@ -422,7 +421,7 @@ export function ProtectionSetup() {
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold text-white">Domains with Tracking Installed</h4>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Domain
                 </Button>
@@ -451,11 +450,11 @@ export function ProtectionSetup() {
                         <p className="text-slate-500 text-xs font-mono">Snippet ID: {website.snippetId}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:text-white">
+                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
                           <Copy className="w-4 h-4 mr-2" />
                           Copy Snippet
                         </Button>
-                        <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:text-white">
+                        <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
