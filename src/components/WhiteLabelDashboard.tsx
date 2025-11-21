@@ -532,7 +532,7 @@ export function WhiteLabelDashboard() {
               <p className="text-sm text-slate-300 mb-4">
                 Our white label team is here to help you get set up. Contact us for personalized assistance.
               </p>
-              <Button variant="outline" className="w-full border-purple-500/30 text-white">
+              <Button className="w-full bg-orange-500 hover:bg-orange-600 text-black font-medium">
                 <Mail className="w-4 h-4 mr-2" />
                 Contact Support
               </Button>

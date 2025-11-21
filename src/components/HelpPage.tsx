@@ -418,7 +418,7 @@ export function HelpPage({ onBackToHome }: { onBackToHome: () => void }) {
               <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 rounded-lg transition-all">
                 Contact Support
               </button>
-              <button className="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-lg transition-all">
+              <button className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-black font-medium rounded-lg transition-all">
                 Email Us
               </button>
             </div>

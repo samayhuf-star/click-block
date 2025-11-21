@@ -282,16 +282,16 @@ export function RefundRequestPage({ isGoogleAdsConnected, onNavigateToSettings }
       {/* Filters */}
       <div className="flex gap-4 flex-wrap items-center justify-between">
         <div className="flex gap-4">
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-white/10 rounded-lg hover:bg-slate-700/50 transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-medium rounded-lg transition-colors">
             <Filter className="w-4 h-4" />
             <span className="text-sm">All Requests</span>
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-white/10 rounded-lg hover:bg-slate-700/50 transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-medium rounded-lg transition-colors">
             <Calendar className="w-4 h-4" />
             <span className="text-sm">Last 30 Days</span>
           </button>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-white/10 rounded-lg hover:bg-slate-700/50 transition-colors">
+        <button className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-black font-medium rounded-lg transition-colors">
           <Download className="w-4 h-4" />
           <span className="text-sm">Export All</span>
         </button>
