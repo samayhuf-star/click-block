@@ -38,7 +38,7 @@ export function Analytics() {
               </button>
             ))}
           </div>
-          <Button variant="outline" className="border-white/20">
+          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
