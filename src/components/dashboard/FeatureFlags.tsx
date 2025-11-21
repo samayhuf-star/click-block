@@ -262,15 +262,14 @@ export function FeatureFlags() {
         <div className="flex gap-3">
           <Button
             onClick={fetchFlags}
-            variant="outline"
-            className="border-slate-700 text-slate-300 hover:text-white bg-slate-800"
+            className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
           <Button
             onClick={() => setShowCreateDialog(true)}
-            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700"
+            className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
           >
             <Plus className="w-4 h-4 mr-2" />
             New Flag
@@ -564,7 +563,7 @@ export function FeatureFlags() {
             </Button>
             <Button
               onClick={showEditDialog ? handleUpdateFlag : handleCreateFlag}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
             >
               <Save className="w-4 h-4 mr-2" />
               {showEditDialog ? 'Update' : 'Create'} Flag

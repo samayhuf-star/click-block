@@ -166,7 +166,7 @@ export function DeveloperTools() {
           <h1 className="text-3xl font-bold text-white">Developer Tools</h1>
           <p className="text-slate-400 mt-2">API keys, webhooks, and sandbox controls</p>
         </div>
-        <Button onClick={fetchData} variant="outline" className="border-slate-700 text-slate-300 hover:text-white bg-slate-800">
+        <Button onClick={fetchData} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
@@ -190,7 +190,7 @@ export function DeveloperTools() {
 
         <TabsContent value="api-keys" className="space-y-4">
           <div className="flex justify-end">
-            <Button onClick={createAPIKey} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={createAPIKey} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
               <Plus className="w-4 h-4 mr-2" />
               Create API Key
             </Button>
@@ -307,7 +307,7 @@ export function DeveloperTools() {
                   Sandbox mode is currently <strong>enabled</strong>. Test API calls without affecting production data.
                 </p>
               </div>
-              <Button className="bg-blue-600 hover:bg-blue-700">
+              <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
                 <Terminal className="w-4 h-4 mr-2" />
                 Open API Console
               </Button>

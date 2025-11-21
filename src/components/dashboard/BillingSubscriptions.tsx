@@ -289,8 +289,7 @@ export function BillingSubscriptions() {
         </div>
         <Button
           onClick={fetchData}
-          variant="outline"
-          className="border-slate-700 text-slate-300 hover:text-white bg-slate-800"
+          className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
@@ -417,8 +416,7 @@ export function BillingSubscriptions() {
           <div className="flex justify-end">
             <Button
               onClick={() => exportData('subscriptions')}
-              variant="outline"
-              className="border-slate-700 text-slate-300 hover:text-white bg-slate-800"
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
             >
               <Download className="w-4 h-4 mr-2" />
               Export Subscriptions
@@ -511,8 +509,7 @@ export function BillingSubscriptions() {
           <div className="flex justify-end">
             <Button
               onClick={() => exportData('payments')}
-              variant="outline"
-              className="border-slate-700 text-slate-300 hover:text-white bg-slate-800"
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
             >
               <Download className="w-4 h-4 mr-2" />
               Export Payments
@@ -650,7 +647,7 @@ export function BillingSubscriptions() {
             >
               Cancel
             </Button>
-            <Button onClick={handleRefund} className="bg-orange-600 hover:bg-orange-700">
+            <Button onClick={handleRefund} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
               Process Refund
             </Button>
           </DialogFooter>

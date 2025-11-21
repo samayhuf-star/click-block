@@ -125,11 +125,11 @@ export function AdminAnalytics() {
               <SelectItem value="365">Last year</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={exportReport} variant="outline" className="border-slate-700 text-slate-300 hover:text-white bg-slate-800">
+          <Button onClick={exportReport} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button onClick={fetchAnalytics} variant="outline" className="border-slate-700 text-slate-300 hover:text-white bg-slate-800">
+          <Button onClick={fetchAnalytics} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>

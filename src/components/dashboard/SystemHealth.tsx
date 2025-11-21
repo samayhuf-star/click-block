@@ -238,16 +238,14 @@ export function SystemHealth() {
         <div className="flex gap-3">
           <Button
             onClick={() => setAutoRefresh(!autoRefresh)}
-            variant="outline"
-            className={`border-slate-700 ${autoRefresh ? 'text-green-400' : 'text-slate-300'} hover:text-white bg-slate-800`}
+            className={`${autoRefresh ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-orange-500 hover:bg-orange-600 text-black'} font-medium`}
           >
             <Wifi className={`w-4 h-4 mr-2 ${autoRefresh ? 'animate-pulse' : ''}`} />
             {autoRefresh ? 'Live' : 'Paused'}
           </Button>
           <Button
             onClick={fetchSystemHealth}
-            variant="outline"
-            className="border-slate-700 text-slate-300 hover:text-white bg-slate-800"
+            className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh

@@ -144,7 +144,7 @@ export function SupportTools() {
           <h1 className="text-3xl font-bold text-white">Support Tools</h1>
           <p className="text-slate-400 mt-2">Manage support tickets and internal notes</p>
         </div>
-        <Button onClick={fetchTickets} variant="outline" className="border-slate-700 text-slate-300 hover:text-white bg-slate-800">
+        <Button onClick={fetchTickets} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
@@ -239,16 +239,15 @@ export function SupportTools() {
               <Button
                 size="sm"
                 onClick={() => updateTicketStatus(ticket.id, 'resolved')}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Resolve
               </Button>
               <Button
                 size="sm"
-                variant="outline"
                 onClick={() => setSelectedTicket(ticket)}
-                className="border-slate-700 text-slate-300"
+                className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
               >
                 Add Note
               </Button>
@@ -270,7 +269,7 @@ export function SupportTools() {
             />
             <Button
               onClick={() => addNote(selectedTicket.id)}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
             >
               <Send className="w-4 h-4" />
             </Button>

@@ -114,11 +114,11 @@ export function Configuration() {
           <p className="text-slate-400 mt-2">Manage system-wide settings and parameters</p>
         </div>
         <div className="flex gap-3">
-          <Button onClick={fetchConfig} variant="outline" className="border-slate-700 text-slate-300 hover:text-white bg-slate-800">
+          <Button onClick={fetchConfig} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
-          <Button onClick={saveConfig} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={saveConfig} disabled={saving} className="bg-orange-500 hover:bg-orange-600 text-black font-medium disabled:opacity-50">
             <Save className="w-4 h-4 mr-2" />
             {saving ? 'Saving...' : 'Save Changes'}
           </Button>

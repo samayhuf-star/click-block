@@ -190,7 +190,7 @@ export function ComplianceTools() {
             <Button
               onClick={exportUserData}
               disabled={loading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
+              className="flex-1 bg-orange-500 hover:bg-orange-600 text-black font-medium disabled:opacity-50"
             >
               <Download className="w-4 h-4 mr-2" />
               Export User Data
@@ -198,7 +198,7 @@ export function ComplianceTools() {
             <Button
               onClick={deleteUserData}
               disabled={loading}
-              className="flex-1 bg-red-600 hover:bg-red-700"
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white disabled:opacity-50"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete User Data

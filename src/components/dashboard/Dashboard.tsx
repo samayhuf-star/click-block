@@ -91,6 +91,7 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
 
   const superAdminTabs = [
     { id: "users-accounts", label: "Users & Accounts", icon: <Users className="w-5 h-5" /> },
+    { id: "billing-subscriptions", label: "Billing & Subscriptions", icon: <CreditCard className="w-5 h-5" /> },
     { id: "usage-limits", label: "Usage & Limits", icon: <Zap className="w-5 h-5" /> },
     { id: "system-health", label: "System Health", icon: <Server className="w-5 h-5" /> },
     { id: "feature-flags", label: "Feature Flags", icon: <Flag className="w-5 h-5" /> },
@@ -293,8 +294,17 @@ export function Dashboard({ onLogout, currentUser }: DashboardProps) {
           {/* Super Admin Tabs */}
           {activeTab === "whitelabel" && <WhiteLabelDashboard />}
           {activeTab === "users-accounts" && <UsersAccounts />}
+          {activeTab === "billing-subscriptions" && <BillingSubscriptions />}
           {activeTab === "usage-limits" && <UsageLimits />}
           {activeTab === "system-health" && <SystemHealth />}
+          {activeTab === "feature-flags" && <FeatureFlags />}
+          {activeTab === "content-management" && <ContentManagement />}
+          {activeTab === "admin-analytics" && <AdminAnalytics />}
+          {activeTab === "audit-logs" && <AuditLogs />}
+          {activeTab === "support-tools" && <SupportTools />}
+          {activeTab === "configuration" && <Configuration />}
+          {activeTab === "compliance-tools" && <ComplianceTools />}
+          {activeTab === "developer-tools" && <DeveloperTools />}
         </main>
       </div>
 

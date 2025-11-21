@@ -290,16 +290,14 @@ export function UsersAccounts() {
         <div className="flex gap-3">
           <Button
             onClick={exportUsers}
-            variant="outline"
-            className="border-slate-700 text-slate-300 hover:text-white bg-slate-800"
+            className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
           >
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
           <Button
             onClick={fetchUsers}
-            variant="outline"
-            className="border-slate-700 text-slate-300 hover:text-white bg-slate-800"
+            className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -598,7 +596,7 @@ export function UsersAccounts() {
               <Trash2 className="w-4 h-4 mr-2" />
               Delete User
             </Button>
-            <Button onClick={() => setShowUserDetails(false)}>
+            <Button onClick={() => setShowUserDetails(false)} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
               Close
             </Button>
           </DialogFooter>
@@ -629,11 +627,11 @@ export function UsersAccounts() {
             <Button
               variant="outline"
               onClick={() => setShowImpersonateDialog(false)}
-              className="border-slate-700"
+              className="border-slate-700 text-slate-300"
             >
               Cancel
             </Button>
-            <Button onClick={confirmImpersonate} className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700">
+            <Button onClick={confirmImpersonate} className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
               Confirm Impersonate
             </Button>
           </DialogFooter>
