@@ -286,16 +286,14 @@ export function AnalyticsProduction() {
         </div>
         <div className="flex gap-3">
           <Button 
-            variant="outline" 
-            className="border-white/20"
+            className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
             onClick={loadAnalytics}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
           <Button 
-            variant="outline" 
-            className="border-white/20"
+            className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
             onClick={exportData}
           >
             <Download className="w-4 h-4 mr-2" />

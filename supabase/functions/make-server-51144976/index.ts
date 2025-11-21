@@ -1262,11 +1262,7 @@ app.get("/make-server-51144976/payment-history", async (c) => {
     }
 
     // Get payment intents/invoices for this customer
-    // Import stripe directly for invoice listing
-    const StripeLib = await import("npm:stripe@17.5.0");
-    const stripeInstance = new StripeLib.default(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2024-11-20.acacia",
-    });
+    const stripeInstance = stripeService.getStripeInstance();
     const invoices = await stripeInstance.invoices.list({
       customer: customer.id,
       limit: 50

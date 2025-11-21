@@ -106,13 +106,13 @@ export function SettingsPanel() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="border-white/20">
+          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
             Change Plan
           </Button>
-          <Button variant="outline" className="border-white/20">
+          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
             Billing History
           </Button>
-          <Button variant="outline" className="border-white/20">
+          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
             Payment Method
           </Button>
         </div>
@@ -131,7 +131,7 @@ export function SettingsPanel() {
           </AlertDescription>
         </Alert>
         <div className="flex gap-3">
-          <Button variant="outline" className="border-white/20">
+          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
             Reconnect Account
           </Button>
           <Button variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10">
@@ -241,7 +241,7 @@ export function SettingsPanel() {
           <Save className="w-4 h-4 mr-2" />
           Save Changes
         </Button>
-        <Button variant="outline" className="border-white/20">
+        <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
           Cancel
         </Button>
       </div>

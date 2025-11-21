@@ -298,8 +298,7 @@ export function SubscriptionSettings() {
             )}
             
             <Button
-              variant="outline"
-              className="w-full border-white/10 hover:bg-white/5"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-black font-medium"
               onClick={() => window.location.href = "/#pricing-section"}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
@@ -358,9 +357,8 @@ export function SubscriptionSettings() {
             </div>
             {!isLifetime && (
               <Button
-                variant="outline"
                 size="sm"
-                className="border-white/10"
+                className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
                 onClick={handleManageSubscription}
                 disabled={isProcessing}
               >

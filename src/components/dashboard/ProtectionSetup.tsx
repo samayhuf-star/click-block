@@ -237,7 +237,7 @@ export function ProtectionSetup() {
                 <Button className="bg-blue-700 hover:bg-blue-800 text-white">
                   Manage Detection Rules
                 </Button>
-                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
                   Manage Auto IP Blocking
                 </Button>
               </div>

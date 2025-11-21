@@ -5,6 +5,11 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2024-11-20.acacia",
 });
 
+// Export stripe instance for use in other modules
+export function getStripeInstance(): Stripe {
+  return stripe;
+}
+
 export interface CheckoutSessionParams {
   priceId?: string;
   planId: string;
