@@ -49,9 +49,12 @@ export function IPManagement() {
   const [bulkIPs, setBulkIPs] = useState("");
 
   useEffect(() => {
-    loadIPLists();
-    // Initialize sample data if lists are empty (for testing)
-    initializeSampleData();
+    const init = async () => {
+      await loadIPLists();
+      // Initialize sample data if lists are empty (for testing)
+      await initializeSampleData();
+    };
+    init();
   }, []);
 
   const initializeSampleData = async () => {
@@ -389,7 +392,7 @@ export function IPManagement() {
 
           <div className="flex gap-2">
             <Button
-              variant="outline"
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
               onClick={() => exportList(activeList)}
             >
               <Download className="w-4 h-4 mr-2" />
@@ -397,7 +400,7 @@ export function IPManagement() {
             </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
                   <Plus className="w-4 h-4 mr-2" />
                   Add IP
                 </Button>
