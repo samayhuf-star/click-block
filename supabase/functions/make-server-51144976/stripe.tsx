@@ -124,6 +124,11 @@ export function verifyWebhookSignature(
   return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 }
 
+// Export stripe instance for direct use
+export function getStripeInstance(): Stripe {
+  return stripe;
+}
+
 /**
  * Get customer by email
  */
