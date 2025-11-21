@@ -1,12 +1,17 @@
 import Stripe from "npm:stripe@17.5.0";
 
 // Initialize Stripe with secret key
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+// Allow function to start even if key is not set (will fail on actual Stripe calls)
+const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
+const stripe = stripeKey ? new Stripe(stripeKey, {
   apiVersion: "2024-11-20.acacia",
-});
+}) : null as any;
 
 // Export stripe instance for use in other modules
 export function getStripeInstance(): Stripe {
+  if (!stripe) {
+    throw new Error("Stripe not initialized. Please set STRIPE_SECRET_KEY environment variable.");
+  }
   return stripe;
 }
 
@@ -103,6 +108,9 @@ export async function createPortalSession(customerId: string, returnUrl: string)
  * Get subscription details
  */
 export async function getSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  if (!stripe) {
+    throw new Error("Stripe not initialized. Please set STRIPE_SECRET_KEY environment variable.");
+  }
   return await stripe.subscriptions.retrieve(subscriptionId);
 }
 
@@ -110,6 +118,9 @@ export async function getSubscription(subscriptionId: string): Promise<Stripe.Su
  * Cancel a subscription
  */
 export async function cancelSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  if (!stripe) {
+    throw new Error("Stripe not initialized. Please set STRIPE_SECRET_KEY environment variable.");
+  }
   return await stripe.subscriptions.cancel(subscriptionId);
 }
 
@@ -121,18 +132,20 @@ export function verifyWebhookSignature(
   signature: string,
   webhookSecret: string
 ): Stripe.Event {
+  if (!stripe) {
+    throw new Error("Stripe not initialized. Please set STRIPE_SECRET_KEY environment variable.");
+  }
   return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 }
 
-// Export stripe instance for direct use
-export function getStripeInstance(): Stripe {
-  return stripe;
-}
 
 /**
  * Get customer by email
  */
 export async function getCustomerByEmail(email: string): Promise<Stripe.Customer | null> {
+  if (!stripe) {
+    throw new Error("Stripe not initialized. Please set STRIPE_SECRET_KEY environment variable.");
+  }
   const customers = await stripe.customers.list({
     email,
     limit: 1,
@@ -145,6 +158,9 @@ export async function getCustomerByEmail(email: string): Promise<Stripe.Customer
  * List all active subscriptions for a customer
  */
 export async function listCustomerSubscriptions(customerId: string): Promise<Stripe.Subscription[]> {
+  if (!stripe) {
+    throw new Error("Stripe not initialized. Please set STRIPE_SECRET_KEY environment variable.");
+  }
   const subscriptions = await stripe.subscriptions.list({
     customer: customerId,
     status: 'active',

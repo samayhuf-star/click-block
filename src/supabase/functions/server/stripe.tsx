@@ -1,12 +1,17 @@
 import Stripe from "npm:stripe@17.5.0";
 
 // Initialize Stripe with secret key
-const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+// Allow function to start even if key is not set (will fail on actual Stripe calls)
+const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
+const stripe = stripeKey ? new Stripe(stripeKey, {
   apiVersion: "2024-11-20.acacia",
-});
+}) : null as any;
 
 // Export stripe instance for use in other modules
 export function getStripeInstance(): Stripe {
+  if (!stripe) {
+    throw new Error("Stripe not initialized. Please set STRIPE_SECRET_KEY environment variable.");
+  }
   return stripe;
 }
 
