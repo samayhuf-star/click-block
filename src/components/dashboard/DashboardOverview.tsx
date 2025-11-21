@@ -255,30 +255,30 @@ export function DashboardOverview() {
               </div>
             ) : (
               <>
-                <FraudSourceItem
-                  source="Bot Networks"
+            <FraudSourceItem
+              source="Bot Networks"
                   count={fraudSources.botNetworks}
                   percentage={stats.fraudulentClicks > 0 ? (fraudSources.botNetworks / stats.fraudulentClicks * 100) : 0}
-                  color="from-red-500 to-orange-500"
-                />
-                <FraudSourceItem
-                  source="VPN Traffic"
+              color="from-red-500 to-orange-500"
+            />
+            <FraudSourceItem
+              source="VPN Traffic"
                   count={fraudSources.vpnTraffic}
                   percentage={stats.fraudulentClicks > 0 ? (fraudSources.vpnTraffic / stats.fraudulentClicks * 100) : 0}
-                  color="from-orange-500 to-yellow-500"
-                />
-                <FraudSourceItem
-                  source="Datacenter IPs"
+              color="from-orange-500 to-yellow-500"
+            />
+            <FraudSourceItem
+              source="Datacenter IPs"
                   count={fraudSources.datacenterIPs}
                   percentage={stats.fraudulentClicks > 0 ? (fraudSources.datacenterIPs / stats.fraudulentClicks * 100) : 0}
-                  color="from-yellow-500 to-amber-500"
-                />
-                <FraudSourceItem
-                  source="Suspicious Patterns"
+              color="from-yellow-500 to-amber-500"
+            />
+            <FraudSourceItem
+              source="Suspicious Patterns"
                   count={fraudSources.suspiciousPatterns}
                   percentage={stats.fraudulentClicks > 0 ? (fraudSources.suspiciousPatterns / stats.fraudulentClicks * 100) : 0}
-                  color="from-amber-500 to-red-500"
-                />
+              color="from-amber-500 to-red-500"
+            />
               </>
             )}
           </div>
@@ -300,25 +300,25 @@ export function DashboardOverview() {
             </div>
           ) : (
             <>
-              <ActivityItem
+          <ActivityItem
                 text={`Blocked ${stats.fraudulentClicks} fraudulent click${stats.fraudulentClicks !== 1 ? 's' : ''} total`}
                 time="Active"
                 type="protection"
-                severity="high"
-              />
-              <ActivityItem
+            severity="high"
+          />
+          <ActivityItem
                 text={`${stats.blockedIPs} IP${stats.blockedIPs !== 1 ? 's' : ''} currently blocked`}
                 time="Active"
                 type="blocking"
-                severity="medium"
-              />
+            severity="medium"
+          />
               {stats.totalClicks > 0 && (
-                <ActivityItem
+          <ActivityItem
                   text={`${legitimateClicks.toLocaleString()} legitimate clicks protected`}
                   time="Active"
                   type="legitimate"
-                  severity="low"
-                />
+            severity="low"
+          />
               )}
             </>
           )}

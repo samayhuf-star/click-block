@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     // In production, you might want to log this to an error reporting service
     // e.g., Sentry, LogRocket, etc.
     if (process.env.NODE_ENV === 'production') {
@@ -51,35 +51,35 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
                 <AlertTriangle className="w-8 h-8 text-red-400" />
-              </div>
-              
+            </div>
+            
               <h2 className="text-2xl font-bold text-white">Something went wrong</h2>
-              
+            
               <p className="text-slate-400">
                 We're sorry, but something unexpected happened. Please try refreshing the page.
-              </p>
-
+            </p>
+            
               {process.env.NODE_ENV === 'development' && this.state.error && (
                 <div className="mt-4 p-4 bg-slate-900 rounded-lg w-full text-left">
                   <p className="text-xs text-red-400 font-mono break-all">
                     {this.state.error.toString()}
-                  </p>
-                </div>
-              )}
+                </p>
+              </div>
+            )}
 
               <div className="flex gap-3 mt-6">
                 <Button
-                  onClick={this.handleReset}
+                onClick={this.handleReset}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
+              >
                   Reload Page
                 </Button>
                 <Button
-                  onClick={() => window.location.href = '/'}
+                onClick={() => window.location.href = '/'}
                   variant="outline"
                   className="border-slate-600 text-slate-300 hover:text-white"
-                >
-                  Go Home
+              >
+                Go Home
                 </Button>
               </div>
             </div>
