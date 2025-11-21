@@ -1288,5 +1288,224 @@ app.get("/make-server-51144976/payment-history", async (c) => {
   }
 });
 
+// ============ IP MANAGEMENT ROUTES ============
+
+// Get all IP management lists
+app.get("/make-server-51144976/ip-management", async (c) => {
+  try {
+    const whitelistKey = "ip-management:whitelist";
+    const blacklistKey = "ip-management:blacklist";
+    
+    const whitelist = await kv.get(whitelistKey) || [];
+    const blacklist = await kv.get(blacklistKey) || [];
+    
+    return c.json({
+      whitelist: Array.isArray(whitelist) ? whitelist : [],
+      blacklist: Array.isArray(blacklist) ? blacklist : []
+    });
+  } catch (error) {
+    console.error("Error fetching IP lists:", error);
+    return c.json({ 
+      error: "Failed to fetch IP lists",
+      whitelist: [],
+      blacklist: []
+    }, 500);
+  }
+});
+
+// Add IP to whitelist or blacklist
+app.post("/make-server-51144976/ip-management", async (c) => {
+  try {
+    const entry = await c.req.json();
+    const { ip, note, type, addedBy, addedAt } = entry;
+    
+    if (!ip || !type) {
+      return c.json({ error: "IP address and type are required" }, 400);
+    }
+    
+    // Validate IP format
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (!ipRegex.test(ip.trim())) {
+      return c.json({ error: "Invalid IP address format" }, 400);
+    }
+    
+    const whitelistKey = "ip-management:whitelist";
+    const blacklistKey = "ip-management:blacklist";
+    
+    const key = type === "whitelist" ? whitelistKey : blacklistKey;
+    const list = await kv.get(key) || [];
+    
+    // Check if IP already exists
+    const existingIndex = list.findIndex((item: any) => item.ip === ip.trim());
+    
+    const newEntry = {
+      id: entry.id || `ip:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      ip: ip.trim(),
+      note: note || "",
+      addedAt: addedAt || new Date().toISOString(),
+      addedBy: addedBy || "System",
+      type: type
+    };
+    
+    if (existingIndex >= 0) {
+      // Update existing entry
+      list[existingIndex] = newEntry;
+    } else {
+      // Add new entry
+      list.push(newEntry);
+    }
+    
+    await kv.set(key, list);
+    
+    return c.json({
+      success: true,
+      entry: newEntry,
+      message: `IP ${ip} added to ${type}`
+    });
+  } catch (error) {
+    console.error("Error adding IP:", error);
+    return c.json({ 
+      error: "Failed to add IP",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
+  }
+});
+
+// Delete IP from whitelist or blacklist
+app.delete("/make-server-51144976/ip-management/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    
+    if (!id) {
+      return c.json({ error: "IP ID is required" }, 400);
+    }
+    
+    const whitelistKey = "ip-management:whitelist";
+    const blacklistKey = "ip-management:blacklist";
+    
+    // Try to find and remove from whitelist
+    const whitelist = await kv.get(whitelistKey) || [];
+    const whitelistIndex = whitelist.findIndex((item: any) => item.id === id);
+    
+    if (whitelistIndex >= 0) {
+      whitelist.splice(whitelistIndex, 1);
+      await kv.set(whitelistKey, whitelist);
+      return c.json({ success: true, message: "IP removed from whitelist" });
+    }
+    
+    // Try to find and remove from blacklist
+    const blacklist = await kv.get(blacklistKey) || [];
+    const blacklistIndex = blacklist.findIndex((item: any) => item.id === id);
+    
+    if (blacklistIndex >= 0) {
+      blacklist.splice(blacklistIndex, 1);
+      await kv.set(blacklistKey, blacklist);
+      return c.json({ success: true, message: "IP removed from blacklist" });
+    }
+    
+    return c.json({ error: "IP not found" }, 404);
+  } catch (error) {
+    console.error("Error deleting IP:", error);
+    return c.json({ 
+      error: "Failed to delete IP",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
+  }
+});
+
+// Initialize sample IP data (for testing)
+app.post("/make-server-51144976/ip-management/init-sample", async (c) => {
+  try {
+    const whitelistKey = "ip-management:whitelist";
+    const blacklistKey = "ip-management:blacklist";
+    
+    const sampleWhitelist = [
+      {
+        id: "ip:whitelist-1",
+        ip: "192.168.1.100",
+        note: "Office network - Main office",
+        addedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        addedBy: "Admin",
+        type: "whitelist"
+      },
+      {
+        id: "ip:whitelist-2",
+        ip: "10.0.0.50",
+        note: "VPN endpoint - Trusted user",
+        addedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        addedBy: "Admin",
+        type: "whitelist"
+      },
+      {
+        id: "ip:whitelist-3",
+        ip: "172.16.0.10",
+        note: "Development server",
+        addedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        addedBy: "Admin",
+        type: "whitelist"
+      }
+    ];
+    
+    const sampleBlacklist = [
+      {
+        id: "ip:blacklist-1",
+        ip: "203.0.113.45",
+        note: "Known bot network - Multiple fraud attempts",
+        addedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        addedBy: "System",
+        type: "blacklist"
+      },
+      {
+        id: "ip:blacklist-2",
+        ip: "198.51.100.23",
+        note: "Suspicious activity detected - Click fraud",
+        addedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+        addedBy: "System",
+        type: "blacklist"
+      },
+      {
+        id: "ip:blacklist-3",
+        ip: "192.0.2.67",
+        note: "VPN/Proxy detected - Automated blocking",
+        addedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+        addedBy: "System",
+        type: "blacklist"
+      },
+      {
+        id: "ip:blacklist-4",
+        ip: "203.0.113.89",
+        note: "Datacenter IP - High fraud rate",
+        addedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+        addedBy: "System",
+        type: "blacklist"
+      },
+      {
+        id: "ip:blacklist-5",
+        ip: "198.51.100.156",
+        note: "Repeated suspicious patterns",
+        addedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        addedBy: "System",
+        type: "blacklist"
+      }
+    ];
+    
+    await kv.set(whitelistKey, sampleWhitelist);
+    await kv.set(blacklistKey, sampleBlacklist);
+    
+    return c.json({
+      success: true,
+      message: "Sample IP data initialized",
+      whitelist: sampleWhitelist.length,
+      blacklist: sampleBlacklist.length
+    });
+  } catch (error) {
+    console.error("Error initializing sample data:", error);
+    return c.json({ 
+      error: "Failed to initialize sample data",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
+  }
+});
+
 // Start the server
 Deno.serve(app.fetch);

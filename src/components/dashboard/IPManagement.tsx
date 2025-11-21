@@ -27,7 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Alert, AlertDescription } from "../ui/alert";
 import { ipManagementAPI } from "../../utils/api";
-import { toast } from "sonner";
+import { toast } from "sonner@2.0.3";
 
 interface IPEntry {
   id: string;
@@ -50,7 +50,38 @@ export function IPManagement() {
 
   useEffect(() => {
     loadIPLists();
+    // Initialize sample data if lists are empty (for testing)
+    initializeSampleData();
   }, []);
+
+  const initializeSampleData = async () => {
+    try {
+      const data = await ipManagementAPI.getAll();
+      const hasData = (data.whitelist && data.whitelist.length > 0) || 
+                      (data.blacklist && data.blacklist.length > 0);
+      
+      if (!hasData) {
+        // Initialize sample data using the API
+        try {
+          const { projectId, publicAnonKey } = await import("../../utils/supabase/info");
+          await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-51144976/ip-management/init-sample`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${publicAnonKey}`,
+              'apikey': publicAnonKey
+            }
+          });
+          // Reload after initialization
+          setTimeout(() => loadIPLists(), 500);
+        } catch (initError) {
+          console.log("Sample data initialization skipped:", initError);
+        }
+      }
+    } catch (error) {
+      console.log("Could not check for sample data:", error);
+    }
+  };
 
   const loadIPLists = async () => {
     try {
@@ -60,21 +91,24 @@ export function IPManagement() {
       setBlacklistIPs(data.blacklist || []);
     } catch (error) {
       console.error("Error loading IP lists:", error);
+      // Don't show error toast on initial load, just use empty arrays
+      setWhitelistIPs([]);
+      setBlacklistIPs([]);
     } finally {
       setLoading(false);
     }
   };
 
   const addIP = async () => {
-    if (!newIP.ip) {
-      console.warn("Please enter an IP address");
+    if (!newIP.ip.trim()) {
+      toast.error("Please enter an IP address");
       return;
     }
 
     // Validate IP format
     const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    if (!ipRegex.test(newIP.ip)) {
-      console.warn("Invalid IP address format");
+    if (!ipRegex.test(newIP.ip.trim())) {
+      toast.error("Invalid IP address format. Please use format: 192.168.1.1");
       return;
     }
 
@@ -98,11 +132,11 @@ export function IPManagement() {
 
       setNewIP({ ip: "", note: "" });
       setIsAddDialogOpen(false);
-      console.log(`IP added to ${activeList}`);
-      toast.success(`IP added to ${activeList}`);
+      toast.success(`IP ${newIP.ip} added to ${activeList}`);
+      loadIPLists(); // Reload to get updated list
     } catch (error) {
       console.error("Error adding IP:", error);
-      toast.error("Error adding IP");
+      toast.error(`Failed to add IP: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -116,17 +150,17 @@ export function IPManagement() {
         setBlacklistIPs(blacklistIPs.filter(ip => ip.id !== id));
       }
 
-      console.log("IP removed");
-      toast.success("IP removed");
+      toast.success("IP removed successfully");
+      loadIPLists(); // Reload to get updated list
     } catch (error) {
       console.error("Error deleting IP:", error);
-      toast.error("Error deleting IP");
+      toast.error(`Failed to remove IP: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
   const bulkImport = async () => {
     if (!bulkIPs.trim()) {
-      console.warn("Please enter IP addresses");
+      toast.error("Please enter IP addresses");
       return;
     }
 
@@ -162,9 +196,12 @@ export function IPManagement() {
     }
 
     setBulkIPs("");
-    console.log(`${successCount} IP(s) imported to ${activeList}`);
-    loadIPLists();
-    toast.success(`${successCount} IP(s) imported to ${activeList}`);
+    if (successCount > 0) {
+      toast.success(`${successCount} IP(s) imported to ${activeList}`);
+      loadIPLists();
+    } else {
+      toast.error("No valid IP addresses found. Please check the format.");
+    }
   };
 
   const exportList = (type: "whitelist" | "blacklist") => {
@@ -183,8 +220,7 @@ export function IPManagement() {
     a.download = `${type}-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    console.log(`${type} exported`);
-    toast.success(`${type} exported`);
+    toast.success(`${type} exported successfully`);
   };
 
   const filterIPs = (ips: IPEntry[]) => {
@@ -397,7 +433,7 @@ export function IPManagement() {
                           rows={3}
                         />
                       </div>
-                      <Button onClick={addIP} className="w-full">
+                      <Button onClick={addIP} className="w-full bg-orange-500 hover:bg-orange-600 text-black font-medium">
                         Add to {activeList}
                       </Button>
                     </TabsContent>
@@ -418,7 +454,7 @@ export function IPManagement() {
                           rows={10}
                         />
                       </div>
-                      <Button onClick={bulkImport} className="w-full">
+                      <Button onClick={bulkImport} className="w-full bg-orange-500 hover:bg-orange-600 text-black font-medium">
                         <Upload className="w-4 h-4 mr-2" />
                         Import {bulkIPs.split("\n").filter(ip => ip.trim()).length} IPs
                       </Button>
