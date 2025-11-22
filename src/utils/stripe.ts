@@ -1,7 +1,8 @@
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import { projectId, publicAnonKey } from './supabase/info';
 
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51SUSgwIsXqYABheTclLx4HFxxuPEtf73Fcqk6lHdQYBvLHm0uvXn3lPACC7pap4JhjKJy8KR73iv9dxsjaqqpezn00BoP47EiW';
+// Stripe publishable key - should be set via environment variable
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
 
 let stripePromise: Promise<Stripe | null>;
 
