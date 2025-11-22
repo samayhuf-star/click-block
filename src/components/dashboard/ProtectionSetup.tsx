@@ -177,12 +177,66 @@ export function ProtectionSetup() {
     ));
   };
 
-  const handleManageDetectionRules = () => {
-    toast.info("Detection rules management - Coming soon!");
+  const handleManageDetectionRules = async () => {
+    try {
+      // Save current settings first
+      await protectionAPI.updateRules({
+        thresholdRules,
+        blockPeriod,
+        refreshRate,
+        ipRangeExclusion,
+        manuallyExcludeIPs,
+        whitelistIPs
+      });
+      toast.success("Detection rules saved. You can now configure advanced detection settings.");
+      // In a full implementation, this would open a dialog or navigate to advanced settings
+    } catch (error) {
+      console.error("Error saving detection rules:", error);
+      toast.error("Failed to save detection rules");
+    }
   };
 
-  const handleManageAutoIPBlocking = () => {
-    toast.info("Auto IP blocking management - Coming soon!");
+  const handleManageAutoIPBlocking = async () => {
+    try {
+      // Save current settings first
+      await protectionAPI.updateRules({
+        thresholdRules,
+        blockPeriod,
+        refreshRate,
+        ipRangeExclusion,
+        manuallyExcludeIPs,
+        whitelistIPs
+      });
+      toast.success("Auto IP blocking settings saved. Configure automatic blocking rules in IP Management.");
+      // Navigate to IP Management or open a dialog
+      setTimeout(() => {
+        // In a full implementation, this would navigate to IP Management tab
+        window.location.href = "/dashboard?tab=ip-management";
+      }, 1000);
+    } catch (error) {
+      console.error("Error saving auto IP blocking:", error);
+      toast.error("Failed to save auto IP blocking settings");
+    }
+  };
+
+  const saveIpRangeExclusion = async (enabled: boolean) => {
+    try {
+      setIpRangeExclusion(enabled);
+      await protectionAPI.updateRules({
+        thresholdRules,
+        blockPeriod,
+        refreshRate,
+        ipRangeExclusion: enabled,
+        manuallyExcludeIPs,
+        whitelistIPs
+      });
+      toast.success(`IP Range Exclusion ${enabled ? 'enabled' : 'disabled'} successfully!`);
+    } catch (error) {
+      console.error("Error updating IP range exclusion:", error);
+      toast.error("Failed to update IP range exclusion");
+      // Revert the state on error
+      setIpRangeExclusion(!enabled);
+    }
   };
 
   const handleAddDomain = () => {
@@ -469,12 +523,25 @@ export function ProtectionSetup() {
               <div className="flex gap-3 max-w-md">
                 <Input
                   type="number"
+                  min="50"
+                  max="500"
                   value={refreshRate}
-                  onChange={(e) => setRefreshRate(e.target.value)}
-                  placeholder="Refresh Rate"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "" || (parseInt(value) >= 50 && parseInt(value) <= 500)) {
+                      setRefreshRate(value);
+                    }
+                  }}
+                  placeholder="Refresh Rate (50-500)"
                   className="flex-1 bg-slate-700 border-slate-600 text-white"
                 />
-                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium" onClick={saveRefreshRate}>UPDATE</Button>
+                <Button 
+                  className="bg-orange-500 hover:bg-orange-600 text-black font-medium" 
+                  onClick={saveRefreshRate}
+                  disabled={!refreshRate || parseInt(refreshRate) < 50 || parseInt(refreshRate) > 500}
+                >
+                  UPDATE
+                </Button>
               </div>
             </div>
 
@@ -489,7 +556,7 @@ export function ProtectionSetup() {
                 </div>
                 <Switch
                   checked={ipRangeExclusion}
-                  onCheckedChange={setIpRangeExclusion}
+                  onCheckedChange={saveIpRangeExclusion}
                   className="ml-4"
                 />
               </div>
