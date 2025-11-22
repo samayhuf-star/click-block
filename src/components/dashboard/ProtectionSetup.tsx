@@ -75,9 +75,10 @@ export function ProtectionSetup() {
         manuallyExcludeIPs,
         whitelistIPs
       });
-      console.log("Threshold rules updated successfully!");
+      toast.success("Threshold rules updated successfully!");
     } catch (error) {
       console.error("Error updating threshold rules:", error);
+      toast.error("Failed to update threshold rules");
     }
   };
 
@@ -91,9 +92,10 @@ export function ProtectionSetup() {
         manuallyExcludeIPs,
         whitelistIPs
       });
-      console.log("Block period updated successfully!");
+      toast.success("Block period updated successfully!");
     } catch (error) {
       console.error("Error updating block period:", error);
+      toast.error("Failed to update block period");
     }
   };
 
@@ -107,9 +109,10 @@ export function ProtectionSetup() {
         manuallyExcludeIPs,
         whitelistIPs
       });
-      console.log("Refresh rate updated successfully!");
+      toast.success("Refresh rate updated successfully!");
     } catch (error) {
       console.error("Error updating refresh rate:", error);
+      toast.error("Failed to update refresh rate");
     }
   };
 
@@ -123,9 +126,10 @@ export function ProtectionSetup() {
         manuallyExcludeIPs,
         whitelistIPs
       });
-      console.log("Excluded IPs updated successfully!");
+      toast.success("Excluded IPs updated successfully!");
     } catch (error) {
       console.error("Error updating excluded IPs:", error);
+      toast.error("Failed to update excluded IPs");
     }
   };
 
@@ -139,9 +143,10 @@ export function ProtectionSetup() {
         manuallyExcludeIPs,
         whitelistIPs
       });
-      console.log("Whitelisted IPs updated successfully!");
+      toast.success("Whitelisted IPs updated successfully!");
     } catch (error) {
       console.error("Error updating whitelisted IPs:", error);
+      toast.error("Failed to update whitelisted IPs");
     }
   };
 
@@ -164,6 +169,69 @@ export function ProtectionSetup() {
     setThresholdRules(thresholdRules.map(rule => 
       rule.id === id ? { ...rule, [field]: value } : rule
     ));
+  };
+
+  const handleManageDetectionRules = () => {
+    toast.info("Detection rules management - Coming soon!");
+  };
+
+  const handleManageAutoIPBlocking = () => {
+    toast.info("Auto IP blocking management - Coming soon!");
+  };
+
+  const handleAddDomain = () => {
+    // Redirect to websites tab or open add website dialog
+    toast.info("Please add websites from the Websites page");
+    // You could also trigger navigation here if needed
+  };
+
+  const handleCopySnippet = async (website: any) => {
+    const snippetCode = `<script>
+  (function() {
+    var s = document.createElement('script');
+    s.src = '${window.location.origin}/tracking.js';
+    s.setAttribute('data-snippet-id', '${website.snippetId}');
+    s.async = true;
+    var ag = document.getElementsByTagName('script')[0];
+    ag.parentNode.insertBefore(s, ag);
+  })();
+</script>`;
+    
+    try {
+      await navigator.clipboard.writeText(snippetCode);
+      toast.success("Snippet copied to clipboard!");
+    } catch (error) {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = snippetCode;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast.success("Snippet copied to clipboard!");
+      } catch (err) {
+        toast.error("Failed to copy snippet");
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
+  const handleDeleteWebsite = async (websiteId: string) => {
+    const website = websites.find(w => w.id === websiteId);
+    if (!confirm(`Are you sure you want to remove tracking from "${website?.name}"?`)) {
+      return;
+    }
+
+    try {
+      await websitesAPI.delete(websiteId);
+      setWebsites(websites.filter(w => w.id !== websiteId));
+      toast.success(`Tracking removed from ${website?.name}`);
+    } catch (error) {
+      console.error("Error deleting website:", error);
+      toast.error("Failed to remove tracking");
+    }
   };
 
   return (
@@ -234,10 +302,16 @@ export function ProtectionSetup() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl text-white">Protection Rule</h2>
               <div className="flex gap-3">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
+                <Button 
+                  onClick={handleManageDetectionRules}
+                  className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+                >
                   Manage Detection Rules
                 </Button>
-                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
+                <Button 
+                  onClick={handleManageAutoIPBlocking}
+                  className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+                >
                   Manage Auto IP Blocking
                 </Button>
               </div>
@@ -421,7 +495,10 @@ export function ProtectionSetup() {
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold text-white">Domains with Tracking Installed</h4>
-                <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
+                <Button 
+                  onClick={handleAddDomain}
+                  className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Domain
                 </Button>
@@ -450,11 +527,19 @@ export function ProtectionSetup() {
                         <p className="text-slate-500 text-xs font-mono">Snippet ID: {website.snippetId}</p>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
+                        <Button 
+                          onClick={() => handleCopySnippet(website)}
+                          size="sm" 
+                          className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+                        >
                           <Copy className="w-4 h-4 mr-2" />
                           Copy Snippet
                         </Button>
-                        <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white">
+                        <Button 
+                          onClick={() => handleDeleteWebsite(website.id)}
+                          size="sm" 
+                          className="bg-red-500 hover:bg-red-600 text-white"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
