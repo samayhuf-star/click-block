@@ -1507,12 +1507,15 @@ function WebsiteDetailsDisplay({ website, onClose }: {
 
   const loadTrafficData = async () => {
     try {
-      setLoading(false); // Don't show loading after first load
+      setLoading(true);
       const analyticsData = await websitesAPI.getAnalytics(website.id);
       
-      // Generate more realistic live traffic data based on analytics
-      const totalClicks = analyticsData.analytics?.totalClicks || 0;
-      const fraudulentClicks = analyticsData.analytics?.fraudulentClicks || 0;
+      console.log("Analytics data for website:", website.id, analyticsData);
+      
+      // Extract analytics data with proper fallbacks
+      const analytics = analyticsData?.analytics || analyticsData || {};
+      const totalClicks = analytics.totalClicks || analytics.total_clicks || 0;
+      const fraudulentClicks = analytics.fraudulentClicks || analytics.fraudulent_clicks || analytics.fraudClicks || 0;
       const legitimateClicks = totalClicks - fraudulentClicks;
       
       // Generate mock live traffic entries
@@ -1549,8 +1552,8 @@ function WebsiteDetailsDisplay({ website, onClose }: {
       
       // Extract geographic, device, and browser data
       const geographic = analytics.geographic || analytics.geo || {};
-      const devices = analytics.devices || analytics.device || {};
-      const browsers = analytics.browsers || analytics.browser || {};
+      const devicesData = analytics.devices || analytics.device || {};
+      const browsersData = analytics.browsers || analytics.browser || {};
       const fraudSources = analytics.fraudSources || analytics.fraud_sources || {};
       
       // Prepare chart data for last 7 days
@@ -1588,11 +1591,12 @@ function WebsiteDetailsDisplay({ website, onClose }: {
         },
         chartData: chartData,
         geographic: geographic,
-        devices: devices,
-        browsers: browsers
+        devices: devicesData,
+        browsers: browsersData
       });
     } catch (error) {
       console.error("Error loading traffic data:", error);
+      toast.error("Failed to load analytics data");
     } finally {
       setLoading(false);
     }
