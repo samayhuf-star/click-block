@@ -41,8 +41,20 @@ export function AnalyticsProduction() {
       console.log('Analytics Response:', analyticsResponse);
       console.log('Websites Response:', websitesResponse);
 
-      setAnalyticsData(analyticsResponse.analytics || []);
-      setWebsites(websitesResponse.websites || []);
+      // Handle different response structures
+      let analyticsArray = [];
+      if (Array.isArray(analyticsResponse)) {
+        analyticsArray = analyticsResponse;
+      } else if (analyticsResponse?.analytics) {
+        analyticsArray = Array.isArray(analyticsResponse.analytics) 
+          ? analyticsResponse.analytics 
+          : [];
+      } else {
+        analyticsArray = [];
+      }
+
+      setAnalyticsData(analyticsArray);
+      setWebsites(websitesResponse?.websites || []);
     } catch (error) {
       console.error("Error loading analytics:", error);
       toast.error("Failed to load analytics data");
@@ -88,12 +100,17 @@ export function AnalyticsProduction() {
 
     // Aggregate data from all websites
     analyticsData.forEach((data: any) => {
-      totalClicks += data.totalClicks || 0;
-      fraudDetected += data.fraudulentClicks || 0;
+      // Handle different data structures
+      const totalClicksValue = data.totalClicks || data.total_clicks || 0;
+      const fraudClicksValue = data.fraudulentClicks || data.fraudulent_clicks || data.fraudClicks || 0;
+      
+      totalClicks += totalClicksValue;
+      fraudDetected += fraudClicksValue;
 
       // Aggregate clicks by date
-      if (data.clicksByDate) {
-        Object.entries(data.clicksByDate).forEach(([date, count]) => {
+      const clicksByDateData = data.clicksByDate || data.clicks_by_date || {};
+      if (clicksByDateData && typeof clicksByDateData === 'object') {
+        Object.entries(clicksByDateData).forEach(([date, count]) => {
           if (!clicksByDate[date]) {
             clicksByDate[date] = { legitimate: 0, fraudulent: 0 };
           }
@@ -101,8 +118,9 @@ export function AnalyticsProduction() {
         });
       }
 
-      if (data.fraudByDate) {
-        Object.entries(data.fraudByDate).forEach(([date, count]) => {
+      const fraudByDateData = data.fraudByDate || data.fraud_by_date || {};
+      if (fraudByDateData && typeof fraudByDateData === 'object') {
+        Object.entries(fraudByDateData).forEach(([date, count]) => {
           if (!clicksByDate[date]) {
             clicksByDate[date] = { legitimate: 0, fraudulent: 0 };
           }
@@ -111,45 +129,60 @@ export function AnalyticsProduction() {
       }
 
       // Fraud sources (from click metadata if available)
-      if (data.fraudSources) {
-        fraudSources.botNetworks += data.fraudSources.botNetworks || 0;
-        fraudSources.vpnTraffic += data.fraudSources.vpnTraffic || 0;
-        fraudSources.datacenterIPs += data.fraudSources.datacenterIPs || 0;
-        fraudSources.suspiciousPatterns += data.fraudSources.suspiciousPatterns || 0;
+      const fraudSourcesData = data.fraudSources || data.fraud_sources || {};
+      if (fraudSourcesData && typeof fraudSourcesData === 'object') {
+        fraudSources.botNetworks += fraudSourcesData.botNetworks || fraudSourcesData.bot_networks || 0;
+        fraudSources.vpnTraffic += fraudSourcesData.vpnTraffic || fraudSourcesData.vpn_traffic || 0;
+        fraudSources.datacenterIPs += fraudSourcesData.datacenterIPs || fraudSourcesData.datacenter_ips || 0;
+        fraudSources.suspiciousPatterns += fraudSourcesData.suspiciousPatterns || fraudSourcesData.suspicious_patterns || 0;
       } else {
         // If no fraud source data, distribute fraud clicks proportionally
-        const fraudCount = data.fraudulentClicks || 0;
-        fraudSources.botNetworks += Math.floor(fraudCount * 0.44);
-        fraudSources.vpnTraffic += Math.floor(fraudCount * 0.30);
-        fraudSources.datacenterIPs += Math.floor(fraudCount * 0.18);
-        fraudSources.suspiciousPatterns += Math.floor(fraudCount * 0.08);
+        fraudSources.botNetworks += Math.floor(fraudClicksValue * 0.44);
+        fraudSources.vpnTraffic += Math.floor(fraudClicksValue * 0.30);
+        fraudSources.datacenterIPs += Math.floor(fraudClicksValue * 0.18);
+        fraudSources.suspiciousPatterns += Math.floor(fraudClicksValue * 0.08);
       }
 
-      // Geographic data
-      if (data.geographic) {
-        Object.entries(data.geographic).forEach(([country, stats]: [string, any]) => {
-          if (!geographic[country]) {
-            geographic[country] = { clicks: 0, fraud: 0 };
+      // Geographic data - handle different structures
+      const geoData = data.geographic || data.geo || {};
+      if (geoData && typeof geoData === 'object') {
+        Object.entries(geoData).forEach(([country, stats]: [string, any]) => {
+          // Normalize country name (handle country codes)
+          const countryName = normalizeCountryName(country);
+          
+          if (!geographic[countryName]) {
+            geographic[countryName] = { clicks: 0, fraud: 0 };
           }
-          geographic[country].clicks += stats.clicks || 0;
-          geographic[country].fraud += stats.fraud || 0;
+          // Handle both object and number formats
+          if (typeof stats === 'object' && stats !== null) {
+            geographic[countryName].clicks += stats.clicks || stats.count || (typeof stats === 'number' ? stats : 0);
+            geographic[countryName].fraud += stats.fraud || stats.fraudulent || 0;
+          } else if (typeof stats === 'number') {
+            geographic[countryName].clicks += stats;
+          }
         });
       }
 
-      // Device data
-      if (data.devices) {
-        devices.desktop += data.devices.desktop || 0;
-        devices.mobile += data.devices.mobile || 0;
-        devices.tablet += data.devices.tablet || 0;
+      // Device data - handle different structures
+      const devicesData = data.devices || data.device || {};
+      if (devicesData && typeof devicesData === 'object') {
+        devices.desktop += devicesData.desktop || 0;
+        devices.mobile += devicesData.mobile || 0;
+        devices.tablet += devicesData.tablet || 0;
+        // Also handle bot if present
+        if (devicesData.bot) {
+          devices.desktop += devicesData.bot; // Count bots as desktop for display
+        }
       }
 
-      // Browser data
-      if (data.browsers) {
-        browsers.chrome += data.browsers.chrome || 0;
-        browsers.safari += data.browsers.safari || 0;
-        browsers.firefox += data.browsers.firefox || 0;
-        browsers.edge += data.browsers.edge || 0;
-        browsers.other += data.browsers.other || 0;
+      // Browser data - handle different structures
+      const browsersData = data.browsers || data.browser || {};
+      if (browsersData && typeof browsersData === 'object') {
+        browsers.chrome += browsersData.chrome || 0;
+        browsers.safari += browsersData.safari || 0;
+        browsers.firefox += browsersData.firefox || 0;
+        browsers.edge += browsersData.edge || 0;
+        browsers.other += browsersData.other || browsersData.opera || browsersData.ie || 0;
       }
     });
 
@@ -247,6 +280,36 @@ export function AnalyticsProduction() {
     }))
     .sort((a, b) => b.clicks - a.clicks)
     .slice(0, 4);
+
+  // Helper function to normalize country names
+  const normalizeCountryName = (country: string): string => {
+    const countryMap: { [key: string]: string } = {
+      'US': 'United States',
+      'USA': 'United States',
+      'United States': 'United States',
+      'UK': 'United Kingdom',
+      'GB': 'United Kingdom',
+      'United Kingdom': 'United Kingdom',
+      'CA': 'Canada',
+      'Canada': 'Canada',
+      'AU': 'Australia',
+      'Australia': 'Australia',
+      'DE': 'Germany',
+      'Germany': 'Germany',
+      'FR': 'France',
+      'France': 'France',
+      'IN': 'India',
+      'India': 'India',
+      'JP': 'Japan',
+      'Japan': 'Japan',
+      'CN': 'China',
+      'China': 'China',
+      'BR': 'Brazil',
+      'Brazil': 'Brazil',
+      'Unknown': 'Unknown'
+    };
+    return countryMap[country] || country;
+  };
 
   const countryFlags: { [key: string]: string } = {
     'United States': '🇺🇸',
