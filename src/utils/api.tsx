@@ -416,6 +416,24 @@ export const alertsAPI = {
       console.error('API Error (create alert):', error);
       throw error;
     }
+  },
+
+  createRule: async (ruleData: any) => {
+    try {
+      const res = await fetch(`${API_BASE}/alert-rules`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(ruleData)
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || 'Failed to create alert rule');
+      }
+      return res.json();
+    } catch (error) {
+      console.error('API Error (create rule):', error);
+      throw error;
+    }
   }
 };
 
