@@ -29,6 +29,10 @@ export function ProtectionSetup() {
   const [whitelistIPs, setWhitelistIPs] = useState("");
   const [websites, setWebsites] = useState<any[]>([]);
   const [trackingLoading, setTrackingLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newWebsiteName, setNewWebsiteName] = useState("");
+  const [newWebsiteUrl, setNewWebsiteUrl] = useState("");
+  const [isAddingWebsite, setIsAddingWebsite] = useState(false);
 
   useEffect(() => {
     loadProtectionRules();
@@ -180,9 +184,57 @@ export function ProtectionSetup() {
   };
 
   const handleAddDomain = () => {
-    // Redirect to websites tab or open add website dialog
-    toast.info("Please add websites from the Websites page");
-    // You could also trigger navigation here if needed
+    setIsAddDialogOpen(true);
+  };
+
+  const handleAddWebsite = async () => {
+    // Validate inputs
+    if (!newWebsiteName.trim()) {
+      toast.error("Please enter a website name");
+      return;
+    }
+
+    if (!newWebsiteUrl.trim()) {
+      toast.error("Please enter a website URL");
+      return;
+    }
+
+    // Validate URL
+    const urlValidation = validateURL(newWebsiteUrl);
+    if (!urlValidation.valid) {
+      toast.error(urlValidation.error || "Please enter a valid URL (e.g., https://example.com)");
+      return;
+    }
+
+    // Validate website name
+    const nameValidation = validateWebsiteName(newWebsiteName);
+    if (!nameValidation.valid) {
+      toast.error(nameValidation.error || "Website name must be between 1 and 100 characters");
+      return;
+    }
+
+    try {
+      setIsAddingWebsite(true);
+      const sanitizedUrl = sanitizeURL(newWebsiteUrl);
+      
+      const result = await websitesAPI.create(newWebsiteName.trim(), sanitizedUrl);
+
+      if (result.website) {
+        // Reload websites list
+        await loadWebsites();
+        setIsAddDialogOpen(false);
+        setNewWebsiteName("");
+        setNewWebsiteUrl("");
+        toast.success(`Website "${result.website.name}" added successfully!`);
+      } else {
+        throw new Error("Failed to add website");
+      }
+    } catch (error: any) {
+      console.error("Error adding website:", error);
+      toast.error(error?.message || "Failed to add website. Please try again.");
+    } finally {
+      setIsAddingWebsite(false);
+    }
   };
 
   const handleCopySnippet = async (website: any) => {
@@ -495,13 +547,75 @@ export function ProtectionSetup() {
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold text-white">Domains with Tracking Installed</h4>
-                <Button 
-                  onClick={handleAddDomain}
-                  className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Domain
-                </Button>
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      onClick={handleAddDomain}
+                      className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Domain
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-slate-900 border-slate-700 text-white">
+                    <DialogHeader>
+                      <DialogTitle className="text-white">Add New Website</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <Label htmlFor="website-name" className="text-slate-300">
+                          Website Name
+                        </Label>
+                        <Input
+                          id="website-name"
+                          value={newWebsiteName}
+                          onChange={(e) => setNewWebsiteName(e.target.value)}
+                          placeholder="My Website"
+                          className="bg-slate-800 border-slate-600 text-white mt-2"
+                          disabled={isAddingWebsite}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="website-url" className="text-slate-300">
+                          Website URL
+                        </Label>
+                        <Input
+                          id="website-url"
+                          type="url"
+                          value={newWebsiteUrl}
+                          onChange={(e) => setNewWebsiteUrl(e.target.value)}
+                          placeholder="https://example.com"
+                          className="bg-slate-800 border-slate-600 text-white mt-2"
+                          disabled={isAddingWebsite}
+                        />
+                        <p className="text-xs text-slate-400 mt-1">
+                          Enter the full URL including https://
+                        </p>
+                      </div>
+                      <div className="flex gap-3 justify-end mt-6">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setIsAddDialogOpen(false);
+                            setNewWebsiteName("");
+                            setNewWebsiteUrl("");
+                          }}
+                          className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                          disabled={isAddingWebsite}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={handleAddWebsite}
+                          className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+                          disabled={isAddingWebsite}
+                        >
+                          {isAddingWebsite ? "Adding..." : "Add Website"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
               
               {trackingLoading ? (
