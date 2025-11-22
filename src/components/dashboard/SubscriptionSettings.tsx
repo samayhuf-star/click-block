@@ -149,8 +149,11 @@ export function SubscriptionSettings() {
               You don't have an active subscription. Choose a plan to get started with ClickBlock.
             </p>
             <Button 
-              className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
-              onClick={() => window.location.href = "/#pricing-section"}
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+              onClick={() => {
+                // Navigate to landing page with pricing section hash
+                window.location.href = "/#pricing-section";
+              }}
             >
               View Plans
             </Button>
@@ -299,7 +302,10 @@ export function SubscriptionSettings() {
             
             <Button
               className="w-full bg-orange-500 hover:bg-orange-600 text-black font-medium"
-              onClick={() => window.location.href = "/#pricing-section"}
+              onClick={() => {
+                // Navigate to landing page with pricing section hash
+                window.location.href = "/#pricing-section";
+              }}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
               View All Plans

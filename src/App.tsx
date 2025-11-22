@@ -216,6 +216,28 @@ export default function App() {
       // Clear URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+
+    // Handle hash navigation to pricing section
+    const handleHashNavigation = () => {
+      if (window.location.hash === '#pricing-section') {
+        setTimeout(() => {
+          const pricingSection = document.getElementById('pricing-section');
+          if (pricingSection) {
+            pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    };
+
+    // Check hash on mount
+    handleHashNavigation();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashNavigation);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashNavigation);
+    };
   }, []);
 
   const handleAddWebsite = () => {
