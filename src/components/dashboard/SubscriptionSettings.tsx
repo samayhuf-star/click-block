@@ -11,10 +11,13 @@ import {
   AlertCircle,
   ExternalLink,
   Crown,
-  Loader2
+  Loader2,
+  Check,
+  ArrowUp,
+  Sparkles
 } from "lucide-react";
-import { getSubscriptionStatus, createPortalSession } from "../../utils/stripe";
-import { PLANS } from "../../utils/plans";
+import { getSubscriptionStatus, createPortalSession, redirectToCheckout } from "../../utils/stripe";
+import { PLANS, PlanTier, Plan } from "../../utils/plans";
 import { toast } from "sonner@2.0.3";
 
 interface SubscriptionData {
@@ -39,8 +42,9 @@ export function SubscriptionSettings() {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPlans, setShowPlans] = useState(false);
 
-  // Get user email from localStorage or currentUser prop
+  // Get user email from localStorage
   const getUserEmail = (): string => {
     try {
       const userSession = localStorage.getItem('clickblock_user_session');
@@ -53,7 +57,6 @@ export function SubscriptionSettings() {
     } catch (e) {
       console.error('Error getting user email:', e);
     }
-    // Fallback to a default or show error
     return '';
   };
 
@@ -61,7 +64,7 @@ export function SubscriptionSettings() {
 
   useEffect(() => {
     if (userEmail) {
-      loadSubscription();
+    loadSubscription();
     } else {
       setLoading(false);
     }
@@ -84,9 +87,8 @@ export function SubscriptionSettings() {
       }
     } catch (error) {
       console.error("Error loading subscription:", error);
-      // Don't show error if user just doesn't have a subscription
       if (error instanceof Error && !error.message.includes('not found')) {
-        toast.error("Failed to load subscription details");
+      toast.error("Failed to load subscription details");
       }
       setSubscription(null);
     } finally {
@@ -106,309 +108,393 @@ export function SubscriptionSettings() {
       window.location.href = portalUrl;
     } catch (error) {
       console.error("Error opening customer portal:", error);
-      toast.error("Failed to open subscription management");
+      toast.error("Failed to open billing portal");
+    } finally {
       setIsProcessing(false);
     }
   };
 
+  const handleUpgrade = async (planId: PlanTier) => {
+    if (!userEmail) {
+      toast.error("Please sign in to upgrade");
+      return;
+    }
+
+    const plan = PLANS[planId];
+    if (!plan) {
+      toast.error("Invalid plan selected");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      await redirectToCheckout({
+        planId: plan.id,
+        planName: plan.name,
+        amount: plan.price,
+        billingPeriod: plan.billingPeriod,
+        customerEmail: userEmail
+      });
+    } catch (error) {
+      console.error("Error initiating checkout:", error);
+      toast.error("Failed to start checkout process");
+      setIsProcessing(false);
+    }
+  };
+
+  const getCurrentPlan = (): Plan | null => {
+    if (!subscription?.planId) return null;
+    return PLANS[subscription.planId as PlanTier] || null;
+  };
+
+  const getAvailablePlans = (): Plan[] => {
+    const currentPlanId = subscription?.planId as PlanTier;
+    const currentPlan = currentPlanId ? PLANS[currentPlanId] : null;
+    
+    // Filter out current plan and show upgrade options
+    return Object.values(PLANS).filter(plan => {
+      if (plan.id === currentPlanId) return false;
+      if (!currentPlan) return true; // Show all plans if no subscription
+      
+      // Show plans that are upgrades or different tiers
+      const planOrder: PlanTier[] = ['trial', 'starter', 'professional', 'enterprise', 'ultimate'];
+      const currentIndex = planOrder.indexOf(currentPlanId);
+      const planIndex = planOrder.indexOf(plan.id);
+      
+      // Show if it's an upgrade or a different plan type (lifetime, reseller, etc)
+      return planIndex > currentIndex || planIndex === -1;
+    });
+  };
+
   if (loading) {
     return (
-      <Card className="p-8 bg-slate-900/50 border-white/10">
-        <div className="flex items-center justify-center gap-3">
-          <Loader2 className="w-6 h-6 text-orange-400 animate-spin" />
-          <span className="text-slate-400">Loading subscription details...</span>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         </div>
-      </Card>
     );
   }
 
-  if (!userEmail) {
-    return (
-      <Card className="p-8 bg-slate-900/50 border-white/10">
-        <div className="text-center space-y-4">
-          <AlertCircle className="w-16 h-16 text-slate-400 mx-auto" />
-          <div>
-            <h3 className="text-xl font-bold text-white mb-2">Please Sign In</h3>
-            <p className="text-slate-400 mb-6">
-              You need to be signed in to view your subscription details.
-            </p>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  if (!subscription) {
-    return (
-      <Card className="p-8 bg-slate-900/50 border-white/10">
-        <div className="text-center space-y-4">
-          <AlertCircle className="w-16 h-16 text-slate-400 mx-auto" />
-          <div>
-            <h3 className="text-xl font-bold text-white mb-2">No Active Subscription</h3>
-            <p className="text-slate-400 mb-6">
-              You don't have an active subscription. Choose a plan to get started with ClickBlock.
-            </p>
-            <Button 
-              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
-              onClick={() => {
-                // Navigate to landing page with pricing section hash
-                window.location.href = "/#pricing-section";
-              }}
-            >
-              View Plans
-            </Button>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  const plan = PLANS[subscription.planId as keyof typeof PLANS];
-  const isActive = subscription.status === "active";
-  const isCancelled = subscription.status === "cancelled";
-  const isLifetime = subscription.billingPeriod === "lifetime";
+  const currentPlan = getCurrentPlan();
+  const availablePlans = getAvailablePlans();
 
   return (
     <div className="space-y-6">
-      {/* Main Subscription Card */}
-      <Card className="p-8 bg-gradient-to-br from-slate-900/50 via-orange-900/20 to-slate-900/50 border-orange-500/30">
-        <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
-          <div className="space-y-4 flex-1">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-orange-500 rounded-xl flex items-center justify-center">
-                <Crown className="w-6 h-6 text-white" />
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold mb-2 text-white">Subscription & Billing</h1>
+        <p className="text-slate-400">Manage your subscription and billing preferences</p>
+      </div>
+
+      {/* Current Subscription */}
+      {subscription && currentPlan ? (
+        <Card className="p-6 bg-slate-900/50 border-white/10">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <Crown className="w-6 h-6 text-yellow-400" />
+                <h2 className="text-2xl font-bold text-white">{currentPlan.name} Plan</h2>
+                <Badge className={`${
+                  subscription.status === 'active' 
+                    ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                    : subscription.status === 'cancelled'
+                    ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                    : 'bg-red-500/20 text-red-400 border-red-500/30'
+                }`}>
+                  {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                </Badge>
               </div>
-              <div>
-                <h2 className="text-3xl font-bold text-white">{subscription.planName}</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge 
-                    className={`${
-                      isActive 
-                        ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                        : isCancelled
-                        ? "bg-red-500/20 text-red-400 border-red-500/30"
-                        : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                    }`}
-                  >
-                    {isActive ? (
-                      <><CheckCircle2 className="w-3 h-3 mr-1" /> Active</>
-                    ) : isCancelled ? (
-                      <><XCircle className="w-3 h-3 mr-1" /> Cancelled</>
-                    ) : (
-                      <><AlertCircle className="w-3 h-3 mr-1" /> {subscription.status}</>
-                    )}
-                  </Badge>
-                  {isLifetime && (
-                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
-                      Lifetime Access
-                    </Badge>
-                  )}
+              <p className="text-slate-400">{currentPlan.description}</p>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-white">${currentPlan.price.toFixed(2)}</div>
+              <div className="text-sm text-slate-400">
+                {currentPlan.billingPeriod === 'monthly' ? 'per month' : 
+                 currentPlan.billingPeriod === 'lifetime' ? 'one-time' : 
+                 'trial'}
                 </div>
               </div>
             </div>
 
-            {subscription.paymentFailed && (
-              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-red-400 font-semibold mb-1">Payment Failed</p>
-                  <p className="text-sm text-red-300">
-                    Your last payment failed. Please update your payment method to continue your subscription.
-                  </p>
+          {/* Plan Features */}
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-slate-300">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>{currentPlan.features.websites === -1 ? 'Unlimited' : currentPlan.features.websites} Websites</span>
                 </div>
+              <div className="flex items-center gap-2 text-slate-300">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>{currentPlan.features.clicksPerMonth === -1 ? 'Unlimited' : `${(currentPlan.features.clicksPerMonth / 1000).toFixed(0)}K`} Clicks/Month</span>
               </div>
-            )}
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 text-slate-300">
-                <DollarSign className="w-5 h-5 text-green-400" />
-                <div>
-                  <div className="text-sm text-slate-400">Amount</div>
-                  <div className="font-semibold">
-                    ${subscription.amount.toFixed(2)} {subscription.currency.toUpperCase()}
-                    {!isLifetime && <span className="text-slate-400 text-sm"> /month</span>}
+              <div className="flex items-center gap-2 text-slate-300">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>{currentPlan.features.dataRetentionDays === -1 ? 'Unlimited' : `${currentPlan.features.dataRetentionDays} Days`} Data Retention</span>
                   </div>
                 </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-slate-300">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>{currentPlan.features.support === '24/7' ? '24/7 Support' : currentPlan.features.support === 'priority' ? 'Priority Support' : 'Email Support'}</span>
               </div>
-
-              {!isLifetime && (
-                <div className="flex items-center gap-3 text-slate-300">
-                  <Calendar className="w-5 h-5 text-orange-400" />
-                  <div>
-                    <div className="text-sm text-slate-400">Next Billing Date</div>
-                    <div className="font-semibold">
-                      {new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
+              <div className="flex items-center gap-2 text-slate-300">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>{currentPlan.features.advancedAnalytics ? 'Advanced Analytics' : 'Basic Analytics'}</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-300">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>{currentPlan.features.googleAdsIntegration ? 'Google Ads Integration' : 'No Google Ads Integration'}</span>
                     </div>
                   </div>
                 </div>
-              )}
 
-              <div className="flex items-center gap-3 text-slate-300">
-                <Calendar className="w-5 h-5 text-blue-400" />
+          {/* Billing Info */}
+          <div className="border-t border-white/10 pt-6 mb-6">
+            <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <div className="text-sm text-slate-400">Started On</div>
-                  <div className="font-semibold">
-                    {new Date(subscription.createdAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </div>
+                <div className="text-sm text-slate-400 mb-1">Current Period</div>
+                <div className="text-white font-semibold">
+                  {new Date(subscription.currentPeriodStart).toLocaleDateString()} - {new Date(subscription.currentPeriodEnd).toLocaleString()}
                 </div>
               </div>
-
-              {subscription.lastPaymentDate && (
-                <div className="flex items-center gap-3 text-slate-300">
-                  <CheckCircle2 className="w-5 h-5 text-green-400" />
                   <div>
-                    <div className="text-sm text-slate-400">Last Payment</div>
-                    <div className="font-semibold">
-                      ${subscription.lastPaymentAmount?.toFixed(2)} on{' '}
-                      {new Date(subscription.lastPaymentDate).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric'
-                      })}
-                    </div>
-                  </div>
+                <div className="text-sm text-slate-400 mb-1">Last Payment</div>
+                <div className="text-white font-semibold">
+                  {subscription.lastPaymentDate 
+                    ? `$${subscription.lastPaymentAmount?.toFixed(2)} on ${new Date(subscription.lastPaymentDate).toLocaleDateString()}`
+                    : 'No payment history'}
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
-          <div className="space-y-3">
-            {!isLifetime && (
+          {/* Actions */}
+          <div className="flex gap-3">
               <Button
-                className="w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600"
                 onClick={handleManageSubscription}
                 disabled={isProcessing}
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
               >
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
+                  Processing...
                   </>
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4 mr-2" />
-                    Manage Subscription
+                  Manage Billing
                   </>
                 )}
               </Button>
-            )}
-            
             <Button
-              className="w-full bg-orange-500 hover:bg-orange-600 text-black font-medium"
-              onClick={() => {
-                // Navigate to landing page with pricing section hash
-                window.location.href = "/#pricing-section";
-              }}
+              onClick={() => setShowPlans(!showPlans)}
+              variant="outline"
+              className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
             >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View All Plans
+              <ArrowUp className="w-4 h-4 mr-2" />
+              {showPlans ? 'Hide' : 'View'} Upgrade Options
             </Button>
-          </div>
         </div>
       </Card>
-
-      {/* Plan Features */}
-      {plan && (
-        <Card className="p-6 bg-slate-900/50 border-white/10">
-          <h3 className="text-xl font-bold text-white mb-4">Your Plan Features</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <FeatureItem
-              label="Websites"
-              value={plan.features.websites === -1 ? "Unlimited" : plan.features.websites.toString()}
-            />
-            <FeatureItem
-              label="Clicks/Month"
-              value={plan.features.clicksPerMonth === -1 ? "Unlimited" : plan.features.clicksPerMonth.toLocaleString()}
-            />
-            <FeatureItem
-              label="Data Retention"
-              value={plan.features.dataRetentionDays === -1 ? "Forever" : `${plan.features.dataRetentionDays} days`}
-            />
-            <FeatureItem
-              label="Support Level"
-              value={plan.features.support === 'email' ? 'Email' : plan.features.support === 'priority' ? 'Priority' : '24/7 Live'}
-            />
-            <FeatureItem
-              label="Advanced Analytics"
-              value={plan.features.advancedAnalytics ? "Included" : "Not Available"}
-              available={plan.features.advancedAnalytics}
-            />
-            <FeatureItem
-              label="White Label"
-              value={plan.features.whiteLabel ? "Included" : "Not Available"}
-              available={plan.features.whiteLabel}
-            />
-          </div>
+      ) : (
+        <Card className="p-12 text-center bg-slate-900/50 border-white/10">
+          <AlertCircle className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2 text-white">No Active Subscription</h2>
+          <p className="text-slate-400 mb-6">
+            You don't have an active subscription. Choose a plan to get started with ClickBlock.
+          </p>
+          <Button 
+            onClick={() => setShowPlans(true)}
+            className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            View Plans
+          </Button>
         </Card>
       )}
 
-      {/* Billing Information */}
-      <Card className="p-6 bg-slate-900/50 border-white/10">
-        <h3 className="text-xl font-bold text-white mb-4">Billing Information</h3>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center p-4 bg-slate-800/30 rounded-lg">
-            <div className="flex items-center gap-3">
-              <CreditCard className="w-5 h-5 text-slate-400" />
+      {/* Available Plans */}
+      {(showPlans || !subscription) && (
+        <div className="space-y-6">
               <div>
-                <div className="font-semibold text-white">Payment Method</div>
-                <div className="text-sm text-slate-400">Managed by Stripe</div>
+            <h2 className="text-2xl font-bold mb-2 text-white">Choose Your Plan</h2>
+            <p className="text-slate-400">Select the plan that best fits your needs</p>
               </div>
+
+          {/* Monthly Plans */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-white">Monthly Plans</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {Object.values(PLANS)
+                .filter(plan => plan.billingPeriod === 'monthly' && plan.id !== 'trial')
+                .map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    currentPlanId={subscription?.planId as PlanTier}
+                    onSelect={handleUpgrade}
+                    isProcessing={isProcessing}
+                  />
+                ))}
             </div>
-            {!isLifetime && (
-              <Button
-                size="sm"
-                className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
-                onClick={handleManageSubscription}
-                disabled={isProcessing}
-              >
-                Update
-              </Button>
-            )}
           </div>
 
-          <div className="flex justify-between items-center p-4 bg-slate-800/30 rounded-lg">
+          {/* Lifetime Plans */}
             <div>
-              <div className="font-semibold text-white">Billing Email</div>
-              <div className="text-sm text-slate-400">{subscription.customerEmail}</div>
+            <h3 className="text-lg font-semibold mb-4 text-white">Lifetime Plans</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              {Object.values(PLANS)
+                .filter(plan => plan.billingPeriod === 'lifetime')
+                .map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    currentPlanId={subscription?.planId as PlanTier}
+                    onSelect={handleUpgrade}
+                    isProcessing={isProcessing}
+                  />
+                ))}
             </div>
           </div>
 
-          {!isLifetime && (
-            <div className="flex justify-between items-center p-4 bg-slate-800/30 rounded-lg">
+          {/* Trial Plan */}
+          {!subscription && (
               <div>
-                <div className="font-semibold text-white">Subscription ID</div>
-                <div className="text-sm text-slate-400 font-mono">{subscription.subscriptionId}</div>
+              <h3 className="text-lg font-semibold mb-4 text-white">Start with a Trial</h3>
+              <div className="grid md:grid-cols-1 gap-6 max-w-2xl">
+                {Object.values(PLANS)
+                  .filter(plan => plan.billingPeriod === 'trial')
+                  .map((plan) => (
+                    <PlanCard
+                      key={plan.id}
+                      plan={plan}
+                      currentPlanId={subscription?.planId as PlanTier}
+                      onSelect={handleUpgrade}
+                      isProcessing={isProcessing}
+                    />
+                  ))}
               </div>
             </div>
           )}
         </div>
-      </Card>
+      )}
     </div>
   );
 }
 
-function FeatureItem({ 
-  label, 
-  value, 
-  available = true 
+function PlanCard({ 
+  plan, 
+  currentPlanId, 
+  onSelect, 
+  isProcessing 
 }: { 
-  label: string; 
-  value: string; 
-  available?: boolean;
+  plan: Plan; 
+  currentPlanId?: PlanTier; 
+  onSelect: (planId: PlanTier) => void;
+  isProcessing: boolean;
 }) {
+  const isCurrentPlan = plan.id === currentPlanId;
+  const isUpgrade = currentPlanId && 
+    ['starter', 'professional', 'enterprise', 'ultimate'].includes(currentPlanId) &&
+    ['starter', 'professional', 'enterprise', 'ultimate'].includes(plan.id) &&
+    ['starter', 'professional', 'enterprise', 'ultimate'].indexOf(plan.id) > 
+    ['starter', 'professional', 'enterprise', 'ultimate'].indexOf(currentPlanId);
+
   return (
-    <div className="p-4 bg-slate-800/30 rounded-lg">
-      <div className="text-sm text-slate-400 mb-1">{label}</div>
-      <div className={`font-semibold ${available ? 'text-white' : 'text-slate-400'}`}>
-        {value}
+    <Card className={`p-6 bg-slate-900/50 border-white/10 relative ${
+      plan.popular ? 'border-blue-500/50 ring-2 ring-blue-500/20' : ''
+    }`}>
+      {plan.popular && (
+        <Badge className="absolute top-4 right-4 bg-blue-500/20 text-blue-400 border-blue-500/30">
+          Most Popular
+        </Badge>
+      )}
+      {plan.savings && (
+        <Badge className="absolute top-4 right-4 bg-green-500/20 text-green-400 border-green-500/30">
+          {plan.savings}
+        </Badge>
+      )}
+      
+      <div className="mb-4">
+        <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-bold text-white">${plan.price.toFixed(2)}</span>
+          <span className="text-slate-400">
+            {plan.billingPeriod === 'monthly' ? '/mo' : 
+             plan.billingPeriod === 'lifetime' ? 'one-time' : 
+             '/trial'}
+          </span>
+        </div>
+        <p className="text-sm text-slate-400 mt-2">{plan.description}</p>
       </div>
+
+      <div className="space-y-3 mb-6">
+        <div className="flex items-center gap-2 text-slate-300">
+          <Check className="w-4 h-4 text-green-400" />
+          <span className="text-sm">
+            {plan.features.websites === -1 ? 'Unlimited' : plan.features.websites} Websites
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-300">
+          <Check className="w-4 h-4 text-green-400" />
+          <span className="text-sm">
+            {plan.features.clicksPerMonth === -1 ? 'Unlimited' : `${(plan.features.clicksPerMonth / 1000).toFixed(0)}K`} Clicks/Month
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-300">
+          <Check className="w-4 h-4 text-green-400" />
+          <span className="text-sm">
+            {plan.features.advancedAnalytics ? 'Advanced Analytics' : 'Basic Analytics'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-300">
+          <Check className="w-4 h-4 text-green-400" />
+          <span className="text-sm">
+            {plan.features.googleAdsIntegration ? 'Google Ads Integration' : 'No Integration'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-300">
+          <Check className="w-4 h-4 text-green-400" />
+          <span className="text-sm">
+            {plan.features.support === '24/7' ? '24/7 Support' : 
+             plan.features.support === 'priority' ? 'Priority Support' : 
+             'Email Support'}
+          </span>
+        </div>
+        {plan.features.whiteLabel && (
+          <div className="flex items-center gap-2 text-slate-300">
+            <Check className="w-4 h-4 text-green-400" />
+            <span className="text-sm">White Label</span>
+          </div>
+        )}
     </div>
+
+      <Button
+        onClick={() => onSelect(plan.id)}
+        disabled={isCurrentPlan || isProcessing}
+        className={`w-full ${
+          isCurrentPlan 
+            ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+            : 'bg-orange-500 hover:bg-orange-600 text-black font-medium'
+        }`}
+      >
+        {isCurrentPlan ? (
+          <>
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+            Current Plan
+          </>
+        ) : isProcessing ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            {isUpgrade ? <ArrowUp className="w-4 h-4 mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            {isUpgrade ? 'Upgrade' : 'Select Plan'}
+          </>
+        )}
+      </Button>
+    </Card>
   );
 }
