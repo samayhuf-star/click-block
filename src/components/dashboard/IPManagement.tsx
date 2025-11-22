@@ -379,11 +379,17 @@ export function IPManagement() {
       <Tabs defaultValue="blacklist" className="w-full" onValueChange={(value) => setActiveList(value as any)}>
         <div className="flex items-center justify-between mb-4">
           <TabsList className="bg-slate-900/50 border border-white/10">
-            <TabsTrigger value="blacklist">
+            <TabsTrigger 
+              value="blacklist"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-black data-[state=active]:font-medium"
+            >
               <Ban className="w-4 h-4 mr-2" />
               Blacklist ({blacklistIPs.length})
             </TabsTrigger>
-            <TabsTrigger value="whitelist">
+            <TabsTrigger 
+              value="whitelist"
+              className="data-[state=active]:bg-orange-500 data-[state=active]:text-black data-[state=active]:font-medium"
+            >
               <CheckCircle className="w-4 h-4 mr-2" />
               Whitelist ({whitelistIPs.length})
             </TabsTrigger>
@@ -411,8 +417,18 @@ export function IPManagement() {
                 <div className="space-y-4">
                   <Tabs defaultValue="single">
                     <TabsList className="w-full bg-slate-800">
-                      <TabsTrigger value="single" className="flex-1">Single IP</TabsTrigger>
-                      <TabsTrigger value="bulk" className="flex-1">Bulk Import</TabsTrigger>
+                      <TabsTrigger 
+                        value="single" 
+                        className="flex-1 data-[state=active]:bg-orange-500 data-[state=active]:text-black data-[state=active]:font-medium"
+                      >
+                        Single IP
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="bulk" 
+                        className="flex-1 data-[state=active]:bg-orange-500 data-[state=active]:text-black data-[state=active]:font-medium"
+                      >
+                        Bulk Import
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="single" className="space-y-4 mt-4">
