@@ -76,13 +76,17 @@ export function WebsitesManager() {
         (data.websites || []).map(async (website: Website) => {
           try {
             const analyticsData = await websitesAPI.getAnalytics(website.id);
-            const totalClicks = analyticsData.analytics?.totalClicks || 0;
-            const fraudClicks = analyticsData.analytics?.fraudulentClicks || 0;
+            
+            // Handle different response structures
+            const analytics = analyticsData?.analytics || analyticsData || {};
+            const totalClicks = analytics.totalClicks || analytics.total_clicks || 0;
+            const fraudClicks = analytics.fraudulentClicks || analytics.fraudulent_clicks || analytics.fraudClicks || 0;
             
             console.log(`Analytics for ${website.name}:`, {
               totalClicks,
               fraudClicks,
-              snippetId: website.snippetId
+              snippetId: website.snippetId,
+              rawData: analyticsData
             });
             
             return {
@@ -1036,7 +1040,7 @@ function WebsiteCardList({
         <div className="mt-6 pt-6 border-t border-slate-700 transition-all duration-300">
           <WebsiteDetailsDisplay 
             website={website}
-            onClose={() => setShowDetails(null)}
+            onClose={() => onShowDetails(null)}
           />
         </div>
       )}
@@ -1184,6 +1188,16 @@ function WebsiteCardGrid({
             status={website.status}
             onClose={() => onShowSnippet(null)}
             onVerify={() => onVerify(website.id)}
+          />
+        </div>
+      )}
+
+      {/* Details Display */}
+      {showDetails === website.id && (
+        <div className="mt-4 pt-4 border-t border-slate-700">
+          <WebsiteDetailsDisplay 
+            website={website}
+            onClose={() => onShowDetails(null)}
           />
         </div>
       )}
@@ -1529,8 +1543,15 @@ function WebsiteDetailsDisplay({ website, onClose }: {
         return traffic.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       };
       
-      const clicksByDate = analyticsData.analytics?.clicksByDate || {};
-      const fraudByDate = analyticsData.analytics?.fraudByDate || {};
+      // Extract date-based data with fallbacks
+      const clicksByDate = analytics.clicksByDate || analytics.clicks_by_date || {};
+      const fraudByDate = analytics.fraudByDate || analytics.fraud_by_date || analytics.fraudByDate || {};
+      
+      // Extract geographic, device, and browser data
+      const geographic = analytics.geographic || analytics.geo || {};
+      const devices = analytics.devices || analytics.device || {};
+      const browsers = analytics.browsers || analytics.browser || {};
+      const fraudSources = analytics.fraudSources || analytics.fraud_sources || {};
       
       // Prepare chart data for last 7 days
       const chartData = [];
@@ -1540,24 +1561,35 @@ function WebsiteDetailsDisplay({ website, onClose }: {
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
         const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const dayClicks = clicksByDate[dateStr] || 0;
+        const dayFraud = fraudByDate[dateStr] || 0;
         chartData.push({
           date: dayName,
-          legitimate: clicksByDate[dateStr] - (fraudByDate[dateStr] || 0) || 0,
-          fraudulent: fraudByDate[dateStr] || 0
+          legitimate: Math.max(0, dayClicks - dayFraud),
+          fraudulent: dayFraud
         });
       }
       
+      // Calculate traffic breakdown from actual data if available
+      const botTraffic = fraudSources.botNetworks || fraudSources.bot_networks || Math.floor(fraudulentClicks * 0.4);
+      const vpnTraffic = fraudSources.vpnTraffic || fraudSources.vpn_traffic || Math.floor(fraudulentClicks * 0.3);
+      const suspiciousTraffic = fraudSources.suspiciousPatterns || fraudSources.suspicious_patterns || Math.floor(fraudulentClicks * 0.3);
+      const blockedIPs = analytics.blockedIPs || analytics.blocked_ips || analytics.blockedIPsCount || 0;
+      
       setTrafficData({
-        analytics: analyticsData.analytics || {},
+        analytics: analytics,
         liveTraffic: generateMockTraffic(),
         trafficBreakdown: {
           legitimate: legitimateClicks,
-          bot: Math.floor(fraudulentClicks * 0.4),
-          vpn: Math.floor(fraudulentClicks * 0.3),
-          blocked: analyticsData.analytics?.blockedIPs || 0,
-          suspicious: Math.floor(fraudulentClicks * 0.3)
+          bot: botTraffic,
+          vpn: vpnTraffic,
+          blocked: blockedIPs,
+          suspicious: suspiciousTraffic
         },
-        chartData: chartData
+        chartData: chartData,
+        geographic: geographic,
+        devices: devices,
+        browsers: browsers
       });
     } catch (error) {
       console.error("Error loading traffic data:", error);
