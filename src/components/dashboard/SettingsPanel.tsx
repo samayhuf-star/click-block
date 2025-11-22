@@ -11,12 +11,16 @@ import {
   Shield, 
   Link2,
   Save,
-  Loader2
+  Loader2,
+  ExternalLink,
+  History
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription } from "../ui/alert";
 import { settingsAPI } from "../../utils/api";
+import { getSubscriptionStatus, createPortalSession } from "../../utils/stripe";
+import { PLANS } from "../../utils/plans";
 import { toast } from "sonner@2.0.3";
 
 export function SettingsPanel() {
@@ -36,9 +40,16 @@ export function SettingsPanel() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [googleAdsConnected, setGoogleAdsConnected] = useState(false);
+  const [googleAdsAccount, setGoogleAdsAccount] = useState<string>("");
+  const [isProcessingBilling, setIsProcessingBilling] = useState(false);
+  const [isProcessingGoogleAds, setIsProcessingGoogleAds] = useState(false);
 
   useEffect(() => {
     loadSettings();
+    loadSubscription();
+    loadGoogleAdsStatus();
   }, []);
 
   const loadSettings = async () => {
@@ -70,6 +81,122 @@ export function SettingsPanel() {
       console.error("Error loading settings:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSubscription = async () => {
+    try {
+      const userSession = localStorage.getItem('clickblock_user_session');
+      if (userSession) {
+        const session = JSON.parse(userSession);
+        if (session.email) {
+          const result = await getSubscriptionStatus(session.email);
+          if (result.hasActiveSubscription) {
+            setSubscription(result.subscription);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading subscription:", error);
+    }
+  };
+
+  const loadGoogleAdsStatus = async () => {
+    try {
+      // Try to load Google Ads connection status from settings
+      const data = await settingsAPI.get();
+      if (data.settings?.googleAdsAccount) {
+        setGoogleAdsConnected(true);
+        setGoogleAdsAccount(data.settings.googleAdsAccount);
+      }
+    } catch (error) {
+      console.error("Error loading Google Ads status:", error);
+    }
+  };
+
+  const handleChangePlan = () => {
+    // Navigate to subscription page
+    window.location.href = "/dashboard?tab=subscription";
+  };
+
+  const handleBillingHistory = async () => {
+    if (!subscription?.customerId) {
+      toast.error("No subscription found");
+      return;
+    }
+
+    try {
+      setIsProcessingBilling(true);
+      const portalUrl = await createPortalSession(subscription.customerId);
+      window.location.href = portalUrl;
+    } catch (error) {
+      console.error("Error opening billing portal:", error);
+      toast.error("Failed to open billing portal");
+    } finally {
+      setIsProcessingBilling(false);
+    }
+  };
+
+  const handlePaymentMethod = async () => {
+    if (!subscription?.customerId) {
+      toast.error("No subscription found");
+      return;
+    }
+
+    try {
+      setIsProcessingBilling(true);
+      const portalUrl = await createPortalSession(subscription.customerId);
+      window.location.href = portalUrl;
+    } catch (error) {
+      console.error("Error opening billing portal:", error);
+      toast.error("Failed to open billing portal");
+    } finally {
+      setIsProcessingBilling(false);
+    }
+  };
+
+  const handleReconnectGoogleAds = async () => {
+    try {
+      setIsProcessingGoogleAds(true);
+      // In a real implementation, this would open Google OAuth flow
+      // For now, we'll simulate it with a prompt
+      const accountId = prompt("Enter your Google Ads Account ID:");
+      if (accountId) {
+        setGoogleAdsConnected(true);
+        setGoogleAdsAccount(accountId);
+        await settingsAPI.save({
+          ...settings,
+          googleAdsAccount: accountId
+        });
+        toast.success("Google Ads account connected successfully");
+      }
+    } catch (error) {
+      console.error("Error connecting Google Ads:", error);
+      toast.error("Failed to connect Google Ads account");
+    } finally {
+      setIsProcessingGoogleAds(false);
+    }
+  };
+
+  const handleDisconnectGoogleAds = async () => {
+    if (!confirm("Are you sure you want to disconnect your Google Ads account?")) {
+      return;
+    }
+
+    try {
+      setIsProcessingGoogleAds(true);
+      setGoogleAdsConnected(false);
+      setGoogleAdsAccount("");
+      await settingsAPI.save({
+        ...settings,
+        googleAdsAccount: ""
+      });
+      toast.success("Google Ads account disconnected");
+    } catch (error) {
+      console.error("Error disconnecting Google Ads:", error);
+      toast.error("Failed to disconnect Google Ads account");
+    } finally {
+      setIsProcessingGoogleAds(false);
     }
   };
 
@@ -142,30 +269,96 @@ export function SettingsPanel() {
           <CreditCard className="w-5 h-5 text-purple-400" />
           <h2 className="text-xl font-semibold">Subscription & Billing</h2>
         </div>
-        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/30 mb-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-semibold">Professional Plan</h3>
-              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">Active</Badge>
+        {subscription ? (
+          <>
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/30 mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold">{subscription.planName}</h3>
+                  <Badge className={`${
+                    subscription.status === 'active' 
+                      ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                      : 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+                  }`}>
+                    {subscription.status === 'active' ? 'Active' : subscription.status}
+                  </Badge>
+                </div>
+                {(() => {
+                  const plan = PLANS[subscription.planId as keyof typeof PLANS];
+                  if (plan) {
+                    const websites = plan.features.websites === -1 ? 'Unlimited' : plan.features.websites;
+                    const clicks = plan.features.clicksPerMonth === -1 ? 'Unlimited' : `${(plan.features.clicksPerMonth / 1000).toFixed(0)}K`;
+                    return (
+                      <p className="text-sm text-slate-400">
+                        {clicks} clicks/month • {websites} websites
+                      </p>
+                    );
+                  }
+                  return <p className="text-sm text-slate-400">Active subscription</p>;
+                })()}
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold">${subscription.amount.toFixed(2)}</div>
+                <div className="text-sm text-slate-400">
+                  {subscription.billingPeriod === 'lifetime' ? 'one-time' : 'per month'}
+                </div>
+              </div>
             </div>
-            <p className="text-sm text-slate-400">Up to 50,000 clicks/month • 5 websites</p>
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleChangePlan}
+                className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Change Plan
+              </Button>
+              <Button 
+                onClick={handleBillingHistory}
+                disabled={isProcessingBilling}
+                className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+              >
+                {isProcessingBilling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <History className="w-4 h-4 mr-2" />
+                    Billing History
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={handlePaymentMethod}
+                disabled={isProcessingBilling}
+                className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+              >
+                {isProcessingBilling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Payment Method
+                  </>
+                )}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-slate-400 mb-4">No active subscription</p>
+            <Button 
+              onClick={handleChangePlan}
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+            >
+              View Plans
+            </Button>
           </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold">$149</div>
-            <div className="text-sm text-slate-400">per month</div>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
-            Change Plan
-          </Button>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
-            Billing History
-          </Button>
-          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
-            Payment Method
-          </Button>
-        </div>
+        )}
       </Card>
 
       {/* Google Ads Connection */}
@@ -174,20 +367,76 @@ export function SettingsPanel() {
           <Link2 className="w-5 h-5 text-green-400" />
           <h2 className="text-xl font-semibold">Google Ads Integration</h2>
         </div>
-        <Alert className="mb-4 bg-green-500/10 border-green-500/30">
-          <Link2 className="w-4 h-4 text-green-400" />
-          <AlertDescription className="text-green-300">
-            Connected to Google Ads account: ads-account-123456789
-          </AlertDescription>
-        </Alert>
-        <div className="flex gap-3">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-black font-medium">
-            Reconnect Account
-          </Button>
-          <Button variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10">
-            Disconnect
-          </Button>
-        </div>
+        {googleAdsConnected ? (
+          <>
+            <Alert className="mb-4 bg-green-500/10 border-green-500/30">
+              <Link2 className="w-4 h-4 text-green-400" />
+              <AlertDescription className="text-green-300">
+                Connected to Google Ads account: {googleAdsAccount || 'ads-account-123456789'}
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleReconnectGoogleAds}
+                disabled={isProcessingGoogleAds}
+                className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+              >
+                {isProcessingGoogleAds ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="w-4 h-4 mr-2" />
+                    Reconnect Account
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={handleDisconnectGoogleAds}
+                disabled={isProcessingGoogleAds}
+                variant="outline" 
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              >
+                {isProcessingGoogleAds ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Disconnect'
+                )}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Alert className="mb-4 bg-slate-800/50 border-slate-700">
+              <Link2 className="w-4 h-4 text-slate-400" />
+              <AlertDescription className="text-slate-300">
+                Not connected to Google Ads. Connect your account to automatically sync fraudulent IPs to Google Ads exclusion lists.
+              </AlertDescription>
+            </Alert>
+            <Button 
+              onClick={handleReconnectGoogleAds}
+              disabled={isProcessingGoogleAds}
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
+            >
+              {isProcessingGoogleAds ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Connect Google Ads Account
+                </>
+              )}
+            </Button>
+          </>
+        )}
       </Card>
 
       {/* Notification Settings */}
