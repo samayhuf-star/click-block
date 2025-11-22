@@ -8,7 +8,9 @@ import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { protectionAPI, websitesAPI } from "../../utils/api";
+import { validateURL, validateWebsiteName, sanitizeURL } from "../../utils/validation";
 import { toast } from "sonner@2.0.3";
 
 interface ThresholdRule {
