@@ -236,7 +236,11 @@ export function AlertSystem() {
             {unacknowledgedCount} Unread
           </Badge>
           {alerts.length > 0 && (
-            <Button variant="outline" onClick={clearAllAlerts}>
+            <Button 
+              variant="outline" 
+              onClick={clearAllAlerts}
+              className="bg-orange-500 hover:bg-orange-600 text-black font-medium border-orange-500"
+            >
               Clear All
             </Button>
           )}
@@ -245,15 +249,24 @@ export function AlertSystem() {
 
       <Tabs defaultValue="alerts" className="w-full">
         <TabsList className="bg-slate-900/50 border border-white/10">
-          <TabsTrigger value="alerts">
+          <TabsTrigger 
+            value="alerts"
+            className="data-[state=active]:bg-orange-500 data-[state=active]:text-black data-[state=active]:font-medium"
+          >
             <Bell className="w-4 h-4 mr-2" />
             Alerts ({unacknowledgedCount})
           </TabsTrigger>
-          <TabsTrigger value="rules">
+          <TabsTrigger 
+            value="rules"
+            className="data-[state=active]:bg-orange-500 data-[state=active]:text-black data-[state=active]:font-medium"
+          >
             <SettingsIcon className="w-4 h-4 mr-2" />
             Alert Rules
           </TabsTrigger>
-          <TabsTrigger value="settings">
+          <TabsTrigger 
+            value="settings"
+            className="data-[state=active]:bg-orange-500 data-[state=active]:text-black data-[state=active]:font-medium"
+          >
             <Mail className="w-4 h-4 mr-2" />
             Notification Settings
           </TabsTrigger>
@@ -310,8 +323,8 @@ export function AlertSystem() {
                     {!alert.acknowledged && (
                       <Button
                         size="sm"
-                        variant="outline"
                         onClick={() => acknowledgeAlert(alert.id)}
+                        className="bg-orange-500 hover:bg-orange-600 text-black font-medium"
                       >
                         Acknowledge
                       </Button>
@@ -602,7 +615,10 @@ export function AlertSystem() {
             </div>
 
             <div className="mt-6 pt-6 border-t border-white/10">
-              <Button onClick={saveSettings} className="w-full">
+              <Button 
+                onClick={saveSettings} 
+                className="w-full bg-orange-500 hover:bg-orange-600 text-black font-medium"
+              >
                 Save Notification Settings
               </Button>
             </div>
