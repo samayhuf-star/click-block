@@ -72,6 +72,23 @@ export function ProtectionSetup() {
   };
 
   const saveThresholdRules = async () => {
+    // Validate threshold rules
+    if (thresholdRules.length === 0) {
+      toast.error("Please add at least one threshold rule");
+      return;
+    }
+
+    for (const rule of thresholdRules) {
+      if (!rule.count || parseInt(rule.count) < 1) {
+        toast.error("Click count must be at least 1");
+        return;
+      }
+      if (!rule.duration || parseInt(rule.duration) < 1) {
+        toast.error("Duration must be at least 1");
+        return;
+      }
+    }
+
     try {
       await protectionAPI.updateRules({
         thresholdRules,
@@ -89,6 +106,12 @@ export function ProtectionSetup() {
   };
 
   const saveBlockPeriod = async () => {
+    const period = parseInt(blockPeriod);
+    if (!blockPeriod || period < 1 || period > 90) {
+      toast.error("Block period must be between 1 and 90 days");
+      return;
+    }
+
     try {
       await protectionAPI.updateRules({
         thresholdRules,
@@ -106,6 +129,12 @@ export function ProtectionSetup() {
   };
 
   const saveRefreshRate = async () => {
+    const rate = parseInt(refreshRate);
+    if (!refreshRate || rate < 50 || rate > 500) {
+      toast.error("Refresh rate must be between 50 and 500");
+      return;
+    }
+
     try {
       await protectionAPI.updateRules({
         thresholdRules,
@@ -123,6 +152,18 @@ export function ProtectionSetup() {
   };
 
   const saveManuallyExcludeIPs = async () => {
+    // Validate IP addresses format
+    const ipLines = manuallyExcludeIPs.split('\n').filter(line => line.trim());
+    if (ipLines.length > 0) {
+      const ipRegex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$|^(\d{1,3}\.){3}\*$/;
+      const invalidIPs = ipLines.filter(ip => !ipRegex.test(ip.trim()));
+      
+      if (invalidIPs.length > 0) {
+        toast.error(`Invalid IP format detected. Please check: ${invalidIPs.slice(0, 3).join(', ')}`);
+        return;
+      }
+    }
+
     try {
       await protectionAPI.updateRules({
         thresholdRules,
@@ -140,6 +181,18 @@ export function ProtectionSetup() {
   };
 
   const saveWhitelistIPs = async () => {
+    // Validate IP addresses format
+    const ipLines = whitelistIPs.split('\n').filter(line => line.trim());
+    if (ipLines.length > 0) {
+      const ipRegex = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$|^(\d{1,3}\.){3}\*$/;
+      const invalidIPs = ipLines.filter(ip => !ipRegex.test(ip.trim()));
+      
+      if (invalidIPs.length > 0) {
+        toast.error(`Invalid IP format detected. Please check: ${invalidIPs.slice(0, 3).join(', ')}`);
+        return;
+      }
+    }
+
     try {
       await protectionAPI.updateRules({
         thresholdRules,
@@ -158,17 +211,19 @@ export function ProtectionSetup() {
 
   const addThresholdRule = () => {
     if (thresholdRules.length >= 5) {
-      console.warn("Maximum 5 threshold rules allowed");
+      toast.error("Maximum 5 threshold rules allowed");
       return;
     }
     setThresholdRules([
       ...thresholdRules,
       { id: Date.now().toString(), count: "1", duration: "10", timeUnit: "minutes" }
     ]);
+    toast.success("New threshold rule added. Don't forget to save!");
   };
 
   const removeThresholdRule = (id: string) => {
     setThresholdRules(thresholdRules.filter(rule => rule.id !== id));
+    toast.success("Threshold rule removed. Don't forget to save!");
   };
 
   const updateThresholdRule = (id: string, field: keyof ThresholdRule, value: string) => {
